@@ -1,0 +1,139 @@
+{
+  "period": "2026년 7월",
+  "demo": true,
+  "summary": {
+    "available": 3560000,
+    "monthlyRevenue": 7260000,
+    "monthlyExpense": 3480000,
+    "externalReceipts": 8900000,
+    "reserveBalance": 2670000
+  },
+  "pools": [
+    {
+      "id": "operation",
+      "label": "운영풀",
+      "amount": 3560000,
+      "ratio": 40,
+      "color": "#3182f6",
+      "note": "지금 사용할 수 있는 운영 자금"
+    },
+    {
+      "id": "reserve",
+      "label": "적립풀",
+      "amount": 2670000,
+      "ratio": 30,
+      "color": "#7c5cff",
+      "note": "다음 프로젝트를 위해 보관하는 자금"
+    },
+    {
+      "id": "dividend",
+      "label": "배당풀",
+      "amount": 2670000,
+      "ratio": 30,
+      "color": "#ff8a3d",
+      "note": "기여도에 따라 배분하는 비율"
+    }
+  ],
+  "flow": [
+    {
+      "month": "1월",
+      "income": 1800000,
+      "expense": 940000
+    },
+    {
+      "month": "2월",
+      "income": 2600000,
+      "expense": 1280000
+    },
+    {
+      "month": "3월",
+      "income": 2200000,
+      "expense": 1440000
+    },
+    {
+      "month": "4월",
+      "income": 4100000,
+      "expense": 1760000
+    },
+    {
+      "month": "5월",
+      "income": 4800000,
+      "expense": 2310000
+    },
+    {
+      "month": "6월",
+      "income": 5900000,
+      "expense": 2860000
+    },
+    {
+      "month": "7월",
+      "income": 7260000,
+      "expense": 3480000
+    }
+  ],
+  "receipts": [
+    {
+      "client": "BRIDGE",
+      "project": "iOS 앱 프로토타입",
+      "amount": 3600000,
+      "status": "수금 완료",
+      "date": "07.18"
+    },
+    {
+      "client": "MOTION",
+      "project": "브랜드 웹 구축",
+      "amount": 2800000,
+      "status": "수금 완료",
+      "date": "07.12"
+    },
+    {
+      "client": "CAMPUS",
+      "project": "관리자 도구 개발",
+      "amount": 2500000,
+      "status": "수금 예정",
+      "date": "07.29"
+    },
+    {
+      "client": "NOVEL",
+      "project": "독서 기록 서비스 UI",
+      "amount": 1800000,
+      "status": "수금 완료",
+      "date": "06.25"
+    },
+    {
+      "client": "STUDIO",
+      "project": "웹 서비스 유지보수",
+      "amount": 1450000,
+      "status": "수금 완료",
+      "date": "06.08"
+    },
+    {
+      "client": "GROVE",
+      "project": "교육 앱 MVP",
+      "amount": 2100000,
+      "status": "수금 완료",
+      "date": "05.22"
+    }
+  ],
+  "notices": [
+    {
+      "category": "재무",
+      "title": "7월 프로젝트 정산 기준 안내",
+      "meta": "어제 업데이트"
+    },
+    {
+      "category": "규칙",
+      "title": "외주 프로젝트 착수 전 체크리스트",
+      "meta": "5일 전 업데이트"
+    },
+    {
+      "category": "문서",
+      "title": "NativeLab 계약서 작성 가이드",
+      "meta": "7월 10일"
+    }
+  ],
+  "member": {
+    "email": "preview@native.team",
+    "name": "미리보기"
+  }
+}
