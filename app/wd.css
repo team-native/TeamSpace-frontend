@@ -417,3 +417,43 @@
 .dk .wd-screen .wd-btn.line{color:#d1d6db;border-color:#2a2d34}
 .dk .wd-screen .wd-chip{color:#b0b8c1}
 .wd-screen.auto{min-height:auto}
+
+/* 팀원 소개 · NativeLab 다크: 헤더와 팀원 찾기까지 같이 어둡게 */
+.pf-shell .pf-header,.np-team-finder{transition:background .35s,border-color .35s}
+.pf-shell:has(.np-team-page.lab){background:#0c0d0f}
+.pf-shell:has(.np-team-page.lab) .pf-header{background:#0c0d0fe0;border-bottom-color:#1f2126}
+.pf-shell:has(.np-team-page.lab) .pf-brand>b,.pf-shell:has(.np-team-page.lab) .pf-profile-copy b{color:#f2f4f6}
+.pf-shell:has(.np-team-page.lab) .pf-header nav a{color:#8b95a1}
+.pf-shell:has(.np-team-page.lab) .pf-header nav a:hover,.pf-shell:has(.np-team-page.lab) .pf-header nav a.active{color:#f2f4f6;background:#1d1f24}
+.pf-shell:has(.np-team-page.lab) .pf-header nav a:after{background:#ffd43b}
+.pf-shell:has(.np-team-page.lab) .pf-profile-trigger{color:#f2f4f6!important}
+.pf-shell:has(.np-team-page.lab) .pf-profile-trigger:hover,.pf-shell:has(.np-team-page.lab) .pf-profile-trigger.open{background:#1d1f24!important;border-color:#2b2e34!important;box-shadow:none}
+.pf-shell:has(.np-team-page.lab) .wd-bell{color:#b0b8c1}
+.pf-shell:has(.np-team-page.lab) .wd-bell:hover,.pf-shell:has(.np-team-page.lab) .wd-bell.on{background:#1d1f24;color:#f2f4f6}
+.pf-shell:has(.np-team-page.lab) .wd-bell b{border-color:#0c0d0f}
+.np-team-page .np-team-switch button:focus{outline:0}
+.np-team-page .np-team-switch button:focus-visible{outline:2px solid #3182f6;outline-offset:2px}
+.np-team-page.lab .np-team-switch button:focus-visible{outline-color:#ffd43b}
+.np-team-page.lab .np-team-finder{--wd-ink:#f2f4f6;--wd-text:#d1d6db;--wd-sub:#b0b8c1;--wd-muted:#8b95a1;--wd-faint:#6b7684;--wd-ghost:#4e5968;--wd-line:#2a2d34;--wd-soft:#1d1f24;--wd-bg:#17191d;--wd-blue:#ffd43b;--wd-blue-deep:#ffe58a;--wd-blue-soft:#25221a;background:#0c0d0f}
+.np-team-page.lab .np-team-finder .wd-card,.np-team-page.lab .np-team-finder .wd-chip,.np-team-page.lab .np-team-finder .wd-search,.np-team-page.lab .np-team-finder .wd-file,.np-team-page.lab .np-team-finder .wd-btn.line{background:#17191d}
+.np-team-page.lab .np-team-finder .wd-card.soft{background:#141619}
+.np-team-page.lab .np-team-finder .wd-chip.on{background:#f2f4f6;border-color:#f2f4f6;color:#111214}
+.np-team-page.lab .np-team-finder .wd-tabs button.on{background:#2a2d34;color:#f2f4f6;box-shadow:none}
+.np-team-page.lab .np-team-finder .wd-banner .ico{background:#17191d}
+.np-team-page.lab .np-team-finder .wd-av{background:#23262d;color:#b0b8c1}
+.np-team-page.lab .np-team-finder .wd-av.blue{background:#25221a;color:#ffd43b}
+.np-team-page.lab .np-team-finder .wd-av.violet{background:#251d45;color:#a995ff}
+.np-team-page.lab .np-team-finder .wd-av.orange{background:#36230f;color:#ffa65c}
+.np-team-page.lab .np-team-finder .wd-av.green{background:#15301f;color:#5ccf8f}
+.np-team-page.lab .np-team-finder .wd-av.dark{background:#f2f4f6;color:#111214}
+.np-team-page.lab .np-team-finder .wd-avs .wd-av{border-color:#25221a}
+.np-team-page.lab .np-team-finder .wd-badge{background:#23262d;color:#b0b8c1}
+.np-team-page.lab .np-team-finder .wd-badge.blue{background:#25221a;color:#ffd43b}
+.np-team-page.lab .np-team-finder .wd-btn{background:#f2f4f6;color:#111214}
+.np-team-page.lab .np-team-finder .wd-btn.ghost{background:#1d1f24;color:#d1d6db}
+.pf-shell:has(.np-team-page.lab) .pf-member button.wd-bell{background:transparent;color:#b0b8c1}
+.pf-shell:has(.np-team-page.lab) .pf-member button.wd-bell:hover,.pf-shell:has(.np-team-page.lab) .pf-member button.wd-bell.on{background:#1d1f24;color:#f2f4f6}
+.pf-shell:has(.np-team-page.lab) .pf-member button.pf-profile-trigger{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+.pf-shell:has(.np-team-page.lab) .pf-member button.pf-profile-trigger:hover,.pf-shell:has(.np-team-page.lab) .pf-member button.pf-profile-trigger.open{background:#1d1f24!important;border-color:#2b2e34!important}
+.pf-shell:has(.np-team-page.lab) .pf-profile-copy small{color:#8b95a1}
+.np-team-page.lab .np-founder-info>span{color:#ffd43b}
