@@ -8,6 +8,7 @@ import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
 import { useInhouseData } from "@/lib/inhouse";
 import { Eyebrow } from "@/components/inhouse/ui";
 import { APPROVALS, APPROVAL_TONE, DRAFTS_KEY, HANDLED, loadLocal, type Approval, type ApprovalStatus } from "@/lib/demo";
+import { UserRound } from "lucide-react";
 
 const STATUSES: ("전체" | ApprovalStatus)[] = ["전체", "작성 중", "결재 대기", "검토 중", "승인", "반려"];
 
@@ -80,7 +81,11 @@ function Requests() {
             >
                   <div className="pf-request-top">
                 <span className="pf-request-icon" aria-hidden="true">
-                  {type.id === "expense" ? "₩" : "₩"}
+                  {type.id === "expense" ? (
+                    "₩"
+                  ) : (
+                    <UserRound size={22} strokeWidth={1.8} />
+                  )}
                 </span>
                 <span className="pf-request-approval-time">
                   평균 승인 1.5일
