@@ -475,81 +475,50 @@ export function AdminIncome() {
     <Admin
       active="수주 · 입금"
       title="수주 · 입금"
-      right={<div className="wd-row"><span className="wd-btn line">+ 수주 등록</span><span className="wd-btn">입금 확인 5</span></div>}
+      right={<div className="wd-row"><span className="wd-btn line">+ 수주 등록</span><span className="wd-btn">+ 입금 등록</span></div>}
       overlay={
         <div className="wd-scrim">
-          <section className="wd-modal lg">
+          <section className="wd-modal">
             <header>
               <div>
-                <span>OPEN BANKING</span>
-                <h2>입금 확인</h2>
-                <p>오픈뱅킹으로 연결한 계좌의 거래내역을 1시간마다 불러와 수주와 맞춰요. 확인 후 반영하면 배분과 재정 알림이 처리돼요.</p>
+                <span>INCOME</span>
+                <h2>입금 등록</h2>
+                <p>등록하면 배분이 계산되고 재정 알림이 가요.</p>
               </div>
               <span className="wd-x">×</span>
             </header>
             <div className="wd-modal-body">
-              <div className="wd-row wd-t10" style={{ gap: 8, marginBottom: 14 }}>
-                <span className="wd-badge green">1 자동 불러오기</span>
-                <span className="wd-faint">→</span>
-                <span className="wd-badge blue">2 매칭 확인</span>
-                <span className="wd-faint">→</span>
-                <span className="wd-badge">3 반영</span>
+              <label className="wd-field">
+                <span>수주 건</span>
+                <div className="wd-input">Moil 서버 고도화 · 모일컴퍼니<span className="end">▾</span></div>
+              </label>
+              <div className="wd-grid g2">
+                <label className="wd-field">
+                  <span>입금액</span>
+                  <div className="wd-input focus">800,000<span className="end">원</span></div>
+                </label>
+                <label className="wd-field">
+                  <span>입금일</span>
+                  <div className="wd-input">2026.10.30<span className="end">▾</span></div>
+                </label>
               </div>
-              <div className="wd-file">
-                <span className="ext doc">KB</span>
-                <div>
-                  <b>국민은행 123-45-6789 · Native 운영 계좌 <span className="wd-badge green" style={{ marginLeft: 6 }}>연결됨</span></b>
-                  <small>마지막 불러오기 오늘 09:00 · 10월 거래 23건 · 입금 6 · 출금 17 · 계좌 동의 만료 D-12</small>
-                </div>
-                <span className="end">지금 불러오기</span>
-              </div>
-              <div className="wd-grid g3" style={{ margin: "14px 0" }}>
+              <b className="wd-t10" style={{ color: "#4e5968" }}>배분 미리보기 · 기준 v2.3</b>
+              <div className="wd-grid g3" style={{ marginTop: 10 }}>
                 {[
-                  ["자동 매칭", "4건", "green"],
-                  ["확인 필요", "1건", "orange"],
-                  ["이미 반영됨 · 제외", "1건", ""],
-                ].map(([k, v, t]) => (
-                  <div key={k} className="wd-card soft" style={{ padding: 14 }}>
-                    <span className="wd-t9 wd-faint" style={{ display: "block" }}>{k}</span>
-                    <b className={t ? `wd-badge ${t}` : "wd-badge"} style={{ display: "inline-flex", marginTop: 6 }}>{v}</b>
+                  ["운영풀 60%", "480,000원", "#3182f6"],
+                  ["적립풀 25%", "200,000원", "#7c5cff"],
+                  ["배당풀 15%", "120,000원", "#ff8a3d"],
+                ].map(([k, v, c]) => (
+                  <div key={k} className="wd-card soft" style={{ padding: 14, boxShadow: `inset 0 3px 0 ${c}` }}>
+                    <span className="wd-t9 wd-faint">{k}</span>
+                    <b style={{ display: "block", marginTop: 6, fontSize: 13 }}>{v}</b>
                   </div>
                 ))}
               </div>
-              <table className="wd-table">
-                <thead>
-                  <tr>
-                    <th>입금일</th>
-                    <th>입금자명 (은행)</th>
-                    <th>연결할 수주</th>
-                    <th>상태</th>
-                    <th className="num">금액</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["10.30", "(주)모일컴퍼니", "Moil 서버 고도화", "자동 매칭", "green", "800,000"],
-                    ["10.28", "그린랩", "Book-on 앱 개발 · 잔금", "자동 매칭", "green", "1,500,000"],
-                    ["10.21", "스튜디오해", "브랜드 사이트 리뉴얼", "자동 매칭", "green", "2,200,000"],
-                    ["10.15", "한빛학원", "출결 관리 웹", "자동 매칭", "green", "600,000"],
-                    ["10.12", "김소로", "선택해 주세요 ▾", "확인 필요", "orange", "350,000"],
-                    ["10.03", "그린랩", "Book-on 앱 개발 · 중도금", "이미 반영됨", "", "1,500,000"],
-                  ].map(([d, who, link, st, t, amt]) => (
-                    <tr key={d + who}>
-                      <td>{d}</td>
-                      <td><b>{who}</b></td>
-                      <td style={st === "확인 필요" ? { color: "#d2621b", fontWeight: 650 } : undefined}>{link}</td>
-                      <td><span className={`wd-badge ${t}`}>{st}</span></td>
-                      <td className="num">{amt}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="wd-banner" style={{ marginTop: 12, padding: "12px 16px" }}><span className="ico">!</span><div><b style={{ fontSize: 11 }}>계좌 동의가 12일 뒤 만료돼요</b><p>만료되면 자동 불러오기가 멈춰요. 관리자가 오픈뱅킹 인증을 다시 하면 이어서 불러와요.</p></div><span className="wd-btn line sm">다시 인증</span></div>
-              <p className="wd-t9 wd-faint" style={{ margin: "12px 0 0" }}>출금 17건은 재무 지출로만 기록돼요. 확인 필요 건은 수주를 고르면 함께 반영돼요. 같은 거래(날짜 · 금액 · 입금자)는 두 번 반영되지 않아요.</p>
             </div>
             <div className="wd-foot">
               <span className="wd-btn ghost">취소</span>
-              <span className="wd-btn">4건 반영하기</span>
+              <span className="wd-btn">입금 등록</span>
             </div>
           </section>
         </div>

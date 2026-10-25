@@ -22,7 +22,6 @@ const BOARDS: Record<string, { row?: boolean; screens: ComponentType[] }> = {
   "3": { screens: [DarkMySpace, DarkApproval, StatesSheet, ErrorPage] },
   "4": { screens: [HomeShortcuts, TeamUnified, ProfileMenu, StyleGuide] },
   "5": { row: true, screens: [MobileOrg, MobileCalendar, MobileApproval] },
-  "6": { screens: [AdminIncome] },
 };
 
 export function generateStaticParams() {

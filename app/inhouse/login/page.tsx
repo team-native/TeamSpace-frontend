@@ -141,7 +141,15 @@ export default function LoginPage() {
               </button>
             </div>
           )}
-          {message && <div className="pf-login-alert">{message}</div>}
+          {message && (
+          <div className="pf-login-alert" role="status">
+            <span className="pf-login-alert-icon">✓</span>
+            <div className="pf-login-alert-content">
+              <strong>가입 요청을 보냈어요</strong>
+              <p>{message}</p>
+            </div>
+          </div>
+          )}
           <button className="pf-login-submit">{mode === "login" ? "로그인" : "가입 요청 보내기"}</button>
           <div className="pf-login-switch">
             {mode === "login" ? "처음이신가요?" : "이미 계정이 있나요?"}

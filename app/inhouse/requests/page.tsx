@@ -72,23 +72,29 @@ function Requests() {
 
           <section className="pf-request-grid">
             {REQUEST_TYPES.map((type, i) => (
-              <Link
-                key={type.id}
-                href={`/inhouse/requests/new?type=${type.id}`}
-                className="pf-request-card pf-request-reveal"
-                style={{ "--delay": `${i * 90}ms` } as CSSProperties}
-              >
-                <div className="pf-request-top">
-                  <span>{String(i + 1).padStart(2, "0")}</span>
-                  <i aria-hidden="true" />
-                </div>
-                <small>{type.eyebrow}</small>
-                <h2>{type.title}</h2>
-                <p>{type.copy}</p>
-                <span>{type.meta}</span>
-                <b>→</b>
-              </Link>
-            ))}
+            <Link
+              key={type.id}
+              href={`/inhouse/requests/new?type=${type.id}`}
+              className="pf-request-card pf-request-reveal"
+              style={{ "--delay": `${i * 90}ms` } as CSSProperties}
+            >
+                  <div className="pf-request-top">
+                <span className="pf-request-icon" aria-hidden="true">
+                  {type.id === "expense" ? "₩" : "₩"}
+                </span>
+                <span className="pf-request-approval-time">
+                  평균 승인 1.5일
+                </span>
+              </div>
+              <small>{type.eyebrow}</small>
+              <h2>{type.title}</h2>
+              <p>{type.copy}</p>
+              <span className="pf-request-meta">
+                {type.meta}
+              </span>
+              <b>→</b>
+            </Link>
+))}
           </section>
 
           <ApprovalBox initialTab={params.get("tab") === "received" ? "received" : "mine"} />
