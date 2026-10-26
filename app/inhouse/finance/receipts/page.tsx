@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
 import WdPage from "@/components/inhouse/WdPage";
-import { Eyebrow, Modal, useOutside } from "@/components/inhouse/ui";
-import { CONTRACTS, CONTRACT_STEPS, RECEIPT_ROWS, RECEIPT_TONE, type ReceiptRow, type ReceiptStatus } from "@/lib/demo";
 import { won } from "@/lib/inhouse";
+import { Eyebrow, useOutside } from "@/components/inhouse/ui";
+import {
+  RECEIPT_ROWS,
+  RECEIPT_TONE,
+  type ReceiptStatus,
+  type ReceiptRow,
+} from "@/lib/demo";
+import ReceiptDetailModal from "../../../../components/inhouse/ReceiptDetailModal";
 
 const STATUSES: ("전체" | ReceiptStatus)[] = ["전체", "청구 완료", "입금 대기", "입금 완료", "연체"];
 const PRESETS = [
@@ -29,7 +35,6 @@ export default function ReceiptsPage() {
   const rows = inRange.filter((r) => status === "전체" || r.status === status);
   const sum = (s?: ReceiptStatus) => inRange.filter((r) => !s || r.status === s).reduce((a, r) => a + r.amount, 0);
   const months = [...new Set(rows.map((r) => r.month))].sort().reverse();
-  const contract = selected ? CONTRACTS[selected.project] : undefined;
 
   return (
     <WdPage active="finance">
@@ -149,70 +154,12 @@ export default function ReceiptsPage() {
       </div>
 
       {selected && (
-        <Modal
-          eyebrow="CONTRACT"
-          title={selected.project}
-          sub={`${selected.client}${contract ? ` · 계약 ${contract.signed}` : ""}`}
-          size="lg"
-          onClose={() => setSelected(null)}
-          footer={
-            <button type="button" className="wd-btn" onClick={() => setSelected(null)}>
-              닫기
-            </button>
-          }
-        >
-          {contract ? (
-            <>
-              <div className="wd-between" style={{ marginBottom: 20, flexWrap: "wrap" }}>
-                <div className="wd-stat">
-                  <small>총 계약 금액</small>
-                  <strong>{won.format(contract.total)}원</strong>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <span className="wd-t9 wd-faint">
-                    수금 {won.format(contract.collected)}원 / {won.format(contract.total)}원
-                  </span>
-                  <div className="wd-bar" style={{ width: 220, marginTop: 8 }}>
-                    <i style={{ width: `${(contract.collected / contract.total) * 100}%` }} />
-                  </div>
-                </div>
-              </div>
-              <div className="wd-card soft" style={{ padding: "18px 10px", marginBottom: 20 }}>
-                <div className="wd-line">
-                  {CONTRACT_STEPS.map((s, i) => (
-                    <div key={s} className={i < contract.step ? "done" : i === contract.step ? "now" : ""}>
-                      <span className="wd-av">{i < contract.step ? "✓" : i + 1}</span>
-                      <b>{s}</b>
-                      <small>{contract.stepDates[i]}</small>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <dl className="wd-kv" style={{ marginBottom: 20 }}>
-                <div><dt>담당 PM</dt><dd>{contract.pm}</dd></div>
-                <div><dt>참여 인원</dt><dd>{contract.staff}</dd></div>
-                <div><dt>배분 기준</dt><dd>{contract.split}</dd></div>
-                <div><dt>다음 청구</dt><dd>{contract.next}</dd></div>
-              </dl>
-              <div className="wd-file">
-                <span className="ext">PDF</span>
-                <div>
-                  <b>{contract.file}</b>
-                  <small>계약서 · {contract.signed} 업로드</small>
-                </div>
-                <span className="end">↓</span>
-              </div>
-            </>
-          ) : (
-            <dl className="wd-kv">
-              <div><dt>금액</dt><dd>{won.format(selected.amount)}원</dd></div>
-              <div><dt>상태</dt><dd>{selected.status}</dd></div>
-              <div><dt>일자</dt><dd>{selected.date}</dd></div>
-              <div><dt>계약 정보</dt><dd>아직 등록되지 않았어요</dd></div>
-            </dl>
-          )}
-        </Modal>
-      )}
+  <ReceiptDetailModal
+    type="contract"
+    item={selected}
+    onClose={() => setSelected(null)}
+  />
+)}
     </WdPage>
   );
 }

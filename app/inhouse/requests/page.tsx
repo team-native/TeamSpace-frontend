@@ -8,6 +8,7 @@ import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
 import { useInhouseData } from "@/lib/inhouse";
 import { Eyebrow } from "@/components/inhouse/ui";
 import { APPROVALS, APPROVAL_TONE, DRAFTS_KEY, HANDLED, loadLocal, type Approval, type ApprovalStatus } from "@/lib/demo";
+import { UserRound } from "lucide-react";
 
 const STATUSES: ("전체" | ApprovalStatus)[] = ["전체", "작성 중", "결재 대기", "검토 중", "승인", "반려"];
 
@@ -72,23 +73,33 @@ function Requests() {
 
           <section className="pf-request-grid">
             {REQUEST_TYPES.map((type, i) => (
-              <Link
-                key={type.id}
-                href={`/inhouse/requests/new?type=${type.id}`}
-                className="pf-request-card pf-request-reveal"
-                style={{ "--delay": `${i * 90}ms` } as CSSProperties}
-              >
-                <div className="pf-request-top">
-                  <span>{String(i + 1).padStart(2, "0")}</span>
-                  <i aria-hidden="true" />
-                </div>
-                <small>{type.eyebrow}</small>
-                <h2>{type.title}</h2>
-                <p>{type.copy}</p>
-                <span>{type.meta}</span>
-                <b>→</b>
-              </Link>
-            ))}
+            <Link
+              key={type.id}
+              href={`/inhouse/requests/new?type=${type.id}`}
+              className="pf-request-card pf-request-reveal"
+              style={{ "--delay": `${i * 90}ms` } as CSSProperties}
+            >
+                  <div className="pf-request-top">
+                <span className="pf-request-icon" aria-hidden="true">
+                  {type.id === "expense" ? (
+                    "₩"
+                  ) : (
+                    <UserRound size={22} strokeWidth={1.8} />
+                  )}
+                </span>
+                <span className="pf-request-approval-time">
+                  평균 승인 1.5일
+                </span>
+              </div>
+              <small>{type.eyebrow}</small>
+              <h2>{type.title}</h2>
+              <p>{type.copy}</p>
+              <span className="pf-request-meta">
+                {type.meta}
+              </span>
+              <b>→</b>
+            </Link>
+))}
           </section>
 
           <ApprovalBox initialTab={params.get("tab") === "received" ? "received" : "mine"} />

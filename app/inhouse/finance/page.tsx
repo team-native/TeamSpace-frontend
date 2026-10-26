@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import ModalPortal from "@/components/inhouse/ModalPortal";
 import PortalHeader from "@/components/inhouse/PortalHeader";
 import { poolColor, useInhouseData, won, type InhouseData, type Receipt } from "@/lib/inhouse";
+import ReceiptDetailModal from "@/components/inhouse/ReceiptDetailModal";
 
 export default function FinancePage() {
   const { data, error } = useInhouseData();
@@ -237,7 +237,13 @@ export default function FinancePage() {
           </Reveal>
         </section>
 
-        {selected && <ReceiptModal item={selected} onClose={() => setSelected(null)} />}
+        {selected && (
+          <ReceiptDetailModal
+            type="receipt"
+            item={selected}
+            onClose={() => setSelected(null)}
+          />
+        )}
 
         <footer className="ih-footer">
           <div className="ih-wordmark">
@@ -261,54 +267,6 @@ function donutGradient(data: InhouseData) {
     return `${poolColor(pool.id)} ${from}% ${to}%`;
   });
   return `conic-gradient(${stops.join(",")})`;
-}
-
-function ReceiptModal({ item, onClose }: { item: Receipt; onClose: () => void }) {
-  return (
-    <ModalPortal>
-      <div className="pf-modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-        <section className="pf-detail-modal" role="dialog" aria-modal="true" aria-label={`${item.client} 수금 상세`}>
-          <header>
-            <div>
-              <span>RECEIPT DETAIL</span>
-              <h2>{item.client} 수금 내역</h2>
-            </div>
-            <button onClick={onClose} aria-label="닫기">
-              ×
-            </button>
-          </header>
-          <div className="pf-detail-body">
-            <div className="pf-detail-amount">
-              <span>{item.status}</span>
-              <strong>{won.format(item.amount)}원</strong>
-              <small>입금일 · {item.date}</small>
-            </div>
-            <dl>
-              <div>
-                <dt>거래처</dt>
-                <dd>{item.client}</dd>
-              </div>
-              <div>
-                <dt>프로젝트</dt>
-                <dd>{item.project}</dd>
-              </div>
-              <div>
-                <dt>수금 상태</dt>
-                <dd>{item.status}</dd>
-              </div>
-              <div>
-                <dt>풀 배분</dt>
-                <dd>운영 40% · 적립 30% · 배당 30%</dd>
-              </div>
-            </dl>
-            <button className="pf-detail-close" onClick={onClose}>
-              확인
-            </button>
-          </div>
-        </section>
-      </div>
-    </ModalPortal>
-  );
 }
 
 function CountUp({ value }: { value: number }) {
