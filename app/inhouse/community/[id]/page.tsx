@@ -6,6 +6,7 @@ import { Fragment, useEffect, useState } from "react";
 import CommunityShell, { board } from "@/components/inhouse/CommunityShell";
 import { Av, Confirm, Modal, copyLink, useOutside, useToast } from "@/components/inhouse/ui";
 import { ME, REPORT_REASONS, type Comment, type Post } from "@/lib/demo";
+import EmptyState from "@/components/inhouse/EmptyState";
 
 export default function PostPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,13 +32,21 @@ export default function PostPage() {
 
   if (post === undefined) return <CommunityShell>{null}</CommunityShell>;
   if (post === null)
-    return (
-      <CommunityShell>
-        <div className="pf-empty" style={{ padding: 80 }}>
-          삭제됐거나 없는 글이에요. <Link href="/inhouse/community" className="wd-link">목록으로</Link>
-        </div>
-      </CommunityShell>
-    );
+  return (
+    <CommunityShell>
+      <EmptyState
+        icon={
+                <span style={{ display: "inline-block", transform: "translateY(5px)" }}>
+                  ?
+                </span>
+              }
+        title="페이지를 찾을 수 없어요"
+        description="삭제됐거나 주소가 바뀌었어요."
+        actionLabel="홈으로"
+        onAction={() => router.push("/inhouse/community")}
+      />
+    </CommunityShell>
+  );
 
   // 익명 댓글 작성자에게 처음 등장한 순서대로 번호를 매김
   const anonNumbers = new Map<string, number>();

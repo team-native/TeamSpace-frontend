@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import EmptyState from "@/components/inhouse/EmptyState";
 import PortalShell from "@/components/inhouse/PortalShell";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
 import { useInhouseData } from "@/lib/inhouse";
@@ -25,12 +26,15 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     setRecent(loadLocal<string[]>(RECENT_KEY, []));
-    setRevisedRead(loadLocal<string[]>("native-inhouse-read-docs", []).includes(revised?.slug ?? ""));
+    setRevisedRead(
+      loadLocal<string[]>("native-inhouse-read-docs", []).includes(revised?.slug ?? ""),
+    );
   }, [revised]);
 
   const remember = (q: string) => {
     const term = q.trim();
     if (!term) return;
+
     const next = [term, ...recent.filter((r) => r !== term)].slice(0, 6);
     setRecent(next);
     saveLocal(RECENT_KEY, next);
@@ -39,12 +43,18 @@ export default function DocumentsPage() {
   const filtered = useMemo(
     () =>
       DOCUMENTS.filter(
-        (doc) => (category === "전체" || doc.category === category) && `${doc.title} ${doc.copy}`.includes(query.trim()),
+        (doc) =>
+          (category === "전체" || doc.category === category) &&
+          `${doc.title} ${doc.copy}`.includes(query.trim()),
       ),
     [category, query],
   );
 
-  useRevealOnScroll(".pf-doc-reveal", { threshold: 0.12, rootMargin: "0px 0px -34px" }, [data, category, query]);
+  useRevealOnScroll(
+    ".pf-doc-reveal",
+    { threshold: 0.12, rootMargin: "0px 0px -34px" },
+    [data, category, query],
+  );
 
   return (
     <PortalShell data={data} error={error} active="documents">
@@ -64,7 +74,12 @@ export default function DocumentsPage() {
                 업무 템플릿을 같은 문서함에서 관리합니다.
               </p>
             </div>
-            <div style={{ position: "relative" }} ref={searchRef} className="wd-scope">
+
+            <div
+              style={{ position: "relative" }}
+              ref={searchRef}
+              className="wd-scope"
+            >
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -82,8 +97,12 @@ export default function DocumentsPage() {
                   />
                 </label>
               </form>
+
               {focused && !query && (
-                <div className="wd-pop" style={{ top: "calc(100% + 8px)", left: 0, right: 0, padding: 16 }}>
+                <div
+                  className="wd-pop"
+                  style={{ top: "calc(100% + 8px)", left: 0, right: 0, padding: 16 }}
+                >
                   <div className="wd-between" style={{ marginBottom: 10 }}>
                     <b className="wd-t10">최근 검색어</b>
                     {recent.length > 0 && (
@@ -100,11 +119,24 @@ export default function DocumentsPage() {
                       </button>
                     )}
                   </div>
+
                   <div className="wd-chips" style={{ marginBottom: 14 }}>
-                    {recent.length === 0 && <span className="wd-t10 wd-faint">아직 검색한 기록이 없어요.</span>}
+                    {recent.length === 0 && (
+                      <span className="wd-t10 wd-faint">아직 검색한 기록이 없어요.</span>
+                    )}
+
                     {recent.map((r) => (
                       <span key={r} className="wd-chip">
-                        <button type="button" style={{ border: 0, background: "none", padding: 0, color: "inherit" }} onClick={() => setQuery(r)}>
+                        <button
+                          type="button"
+                          style={{
+                            border: 0,
+                            background: "none",
+                            padding: 0,
+                            color: "inherit",
+                          }}
+                          onClick={() => setQuery(r)}
+                        >
                           {r}
                         </button>
                         <button
@@ -122,9 +154,15 @@ export default function DocumentsPage() {
                       </span>
                     ))}
                   </div>
+
                   <b className="wd-t10">자주 찾는 문서</b>
                   {DOCUMENTS.slice(1, 3).map((d) => (
-                    <Link key={d.slug} href={`/inhouse/documents/${d.slug}`} className="wd-row wd-t11" style={{ padding: "9px 0", gap: 8 }}>
+                    <Link
+                      key={d.slug}
+                      href={`/inhouse/documents/${d.slug}`}
+                      className="wd-row wd-t11"
+                      style={{ padding: "9px 0", gap: 8 }}
+                    >
                       <span className="wd-faint">→</span> {d.title}
                     </Link>
                   ))}
@@ -136,7 +174,9 @@ export default function DocumentsPage() {
           {revised && !revisedRead && (
             <div className="wd-scope wd-wrap" style={{ marginBottom: 40 }}>
               <div className="wd-banner" style={{ background: "#fff8dc" }}>
-                <span className="ico" style={{ color: "#9a6b00" }}>!</span>
+                <span className="ico" style={{ color: "#9a6b00" }}>
+                  !
+                </span>
                 <div>
                   <b>
                     &lsquo;{revised.title}&rsquo;이 개정됐어요 · {revised.effective} 시행
@@ -153,17 +193,27 @@ export default function DocumentsPage() {
           <section className="pf-doc-body pf-doc-reveal">
             <aside>
               {CATEGORIES.map((name) => (
-                <button key={name} onClick={() => setCategory(name)} className={category === name ? "active" : ""}>
+                <button
+                  key={name}
+                  onClick={() => setCategory(name)}
+                  className={category === name ? "active" : ""}
+                >
                   {name}
-                  <span>{name === "전체" ? DOCUMENTS.length : DOCUMENTS.filter((d) => d.category === name).length}</span>
+                  <span>
+                    {name === "전체"
+                      ? DOCUMENTS.length
+                      : DOCUMENTS.filter((d) => d.category === name).length}
+                  </span>
                 </button>
               ))}
             </aside>
+
             <div className="pf-doc-list">
               <header>
                 <b>{category}</b>
                 <span>{filtered.length}개의 문서</span>
               </header>
+
               {filtered.map((doc, i) => (
                 <Link
                   key={doc.slug}
@@ -171,7 +221,10 @@ export default function DocumentsPage() {
                   onClick={() => remember(query)}
                   style={{ display: "block", color: "inherit", textDecoration: "none" }}
                 >
-                  <article className="pf-doc-reveal" style={{ "--row-delay": `${i * 55}ms` } as CSSProperties}>
+                  <article
+                    className="pf-doc-reveal"
+                    style={{ "--row-delay": `${i * 55}ms` } as CSSProperties}
+                  >
                     <small>{doc.type}</small>
                     <div>
                       <b>
@@ -189,7 +242,22 @@ export default function DocumentsPage() {
                   </article>
                 </Link>
               ))}
-              {filtered.length === 0 && <div className="pf-empty">검색 결과가 없어요.</div>}
+
+              {filtered.length === 0 && (
+                <div className="wd-scope">
+                  <EmptyState
+                    icon="⌕"
+                    title="검색 결과가 없어요"
+                    description="다른 단어로 찾아보거나 분류를 바꿔보세요."
+                    actionLabel="필터 초기화"
+                    onAction={() => {
+                      setQuery("");
+                      setCategory("전체");
+                      setFocused(false);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </section>
         </>
