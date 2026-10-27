@@ -9,6 +9,7 @@ import { useInhouseData } from "@/lib/inhouse";
 import { Eyebrow } from "@/components/inhouse/ui";
 import { APPROVALS, APPROVAL_TONE, DRAFTS_KEY, HANDLED, loadLocal, type Approval, type ApprovalStatus } from "@/lib/demo";
 import { UserRound } from "lucide-react";
+import EmptyState from "@/components/inhouse/EmptyState";
 
 const STATUSES: ("전체" | ApprovalStatus)[] = ["전체", "작성 중", "결재 대기", "검토 중", "승인", "반려"];
 
@@ -159,36 +160,53 @@ function ApprovalBox({ initialTab }: { initialTab: "mine" | "received" }) {
                 ))}
               </div>
             )}
-            <div className="wd-card" style={{ padding: "4px 20px" }}>
-              <div className="wd-list">
-                {list.map((a) => (
-                  <Link
-                    key={a.id}
-                    href={a.status === "작성 중" ? `/inhouse/requests/new?draft=${a.id}` : `/inhouse/requests/${a.id}`}
-                    className="wd-li link"
-                    style={{ gridTemplateColumns: "72px 1fr auto auto" }}
-                  >
-                    <span className={`wd-badge ${APPROVAL_TONE[a.status]}`} style={{ justifySelf: "start" }}>
-                      {tab === "received" ? "내 차례" : a.status}
-                    </span>
-                    <div>
-                      <b>{a.title}</b>
-                      <p>
-                        {tab === "received" ? `${a.author} · ` : ""}
-                        {a.kind} · {a.type} · {a.date}
-                      </p>
-                    </div>
-                    <span className="wd-t9 wd-faint">
-                      {a.status === "반려" ? "사유 확인" : a.line.filter((l) => l.state !== "done").map((l) => l.who).join(" → ") || "완료"}
-                    </span>
-                    <span className="r">
-                      <strong>{a.amount}</strong>
-                    </span>
-                  </Link>
-                ))}
-                {list.length === 0 && <div className="pf-empty" style={{ padding: 30 }}>해당하는 결재가 없어요.</div>}
-              </div>
-            </div>
+            {list.length === 0 ? (
+                  <EmptyState
+                    icon="⌕"
+                    title="검색 결과가 없어요"
+                    description="다른 단어로 찾아보거나 필터를 풀어보세요."
+                    actionLabel="필터 초기화"
+                    onAction={() => {
+                      setQuery("");
+                      setStatus("전체");
+                    }}
+                  />
+                ) : (
+                <div className="wd-card" style={{ padding: "4px 20px" }}>
+                  <div className="wd-list">
+                    {list.map((a) => (
+                      <Link
+                        key={a.id}
+                        href={a.status === "작성 중" ? `/inhouse/requests/new?draft=${a.id}` : `/inhouse/requests/${a.id}`}
+                        className="wd-li link"
+                        style={{ gridTemplateColumns: "72px 1fr auto auto" }}
+                      >
+                        <span className={`wd-badge ${APPROVAL_TONE[a.status]}`} style={{ justifySelf: "start" }}>
+                          {tab === "received" ? "내 차례" : a.status}
+                        </span>
+
+                        <div>
+                          <b>{a.title}</b>
+                          <p>
+                            {tab === "received" ? `${a.author} · ` : ""}
+                            {a.kind} · {a.type} · {a.date}
+                          </p>
+                        </div>
+
+                        <span className="wd-t9 wd-faint">
+                          {a.status === "반려"
+                            ? "사유 확인"
+                            : a.line.filter((l) => l.state !== "done").map((l) => l.who).join(" → ") || "완료"}
+                        </span>
+
+                        <span className="r">
+                          <strong>{a.amount}</strong>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
           </div>
 
           <aside className="wd-stack">

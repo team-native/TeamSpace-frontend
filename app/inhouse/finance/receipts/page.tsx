@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
 import WdPage from "@/components/inhouse/WdPage";
+import EmptyState from "@/components/inhouse/EmptyState";
 import { won } from "@/lib/inhouse";
 import { Eyebrow, useOutside } from "@/components/inhouse/ui";
 import {
@@ -14,6 +15,7 @@ import {
 import ReceiptDetailModal from "../../../../components/inhouse/ReceiptDetailModal";
 
 const STATUSES: ("전체" | ReceiptStatus)[] = ["전체", "청구 완료", "입금 대기", "입금 완료", "연체"];
+
 const PRESETS = [
   ["이번 달", "2026-10", "2026-10"],
   ["최근 3개월", "2026-08", "2026-10"],
@@ -25,15 +27,23 @@ const CAN_SEE_ALL = true;
 
 export default function ReceiptsPage() {
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("전체");
-  const [range, setRange] = useState<{ label: string; from: string; to: string }>({ label: "최근 3개월", from: "2026-08", to: "2026-10" });
+  const [range, setRange] = useState<{ label: string; from: string; to: string }>({
+    label: "최근 3개월",
+    from: "2026-08",
+    to: "2026-10",
+  });
   const [draft, setDraft] = useState(range);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selected, setSelected] = useState<ReceiptRow | null>(null);
   const pickerRef = useOutside<HTMLDivElement>(pickerOpen, () => setPickerOpen(false));
 
-  const inRange = useMemo(() => RECEIPT_ROWS.filter((r) => r.month >= range.from && r.month <= range.to), [range]);
+  const inRange = useMemo(
+    () => RECEIPT_ROWS.filter((r) => r.month >= range.from && r.month <= range.to),
+    [range],
+  );
   const rows = inRange.filter((r) => status === "전체" || r.status === status);
-  const sum = (s?: ReceiptStatus) => inRange.filter((r) => !s || r.status === s).reduce((a, r) => a + r.amount, 0);
+  const sum = (s?: ReceiptStatus) =>
+    inRange.filter((r) => !s || r.status === s).reduce((a, r) => a + r.amount, 0);
   const months = [...new Set(rows.map((r) => r.month))].sort().reverse();
 
   return (
@@ -42,40 +52,74 @@ export default function ReceiptsPage() {
         <div className="wd-crumb">
           <Link href="/inhouse/finance">재무</Link> › <b>수금 내역</b>
         </div>
+
         <section className="wd-hero sm">
           <div>
             <Eyebrow>RECEIPTS</Eyebrow>
             <h1>수금 내역</h1>
             <p>외주 수주부터 입금까지, 들어온 돈을 프로젝트별로 확인해요.</p>
           </div>
+
           <div style={{ position: "relative" }} ref={pickerRef}>
-            <button type="button" className="wd-btn line sm" aria-expanded={pickerOpen} onClick={() => setPickerOpen((v) => !v)}>
+            <button
+              type="button"
+              className="wd-btn line sm"
+              aria-expanded={pickerOpen}
+              onClick={() => setPickerOpen((v) => !v)}
+            >
               {range.from.replace("-", ".")} – {range.to.replace("-", ".")} ▾
             </button>
+
             {pickerOpen && (
               <div className="wd-pop" style={{ top: 42, right: 0, width: 340, padding: 18 }}>
                 <b className="wd-t11">기간 선택</b>
+
                 <div className="wd-seg" style={{ margin: "12px 0 14px" }}>
                   {PRESETS.map(([label, from, to]) => (
-                    <button type="button" key={label} className={draft.label === label ? "on" : ""} onClick={() => setDraft({ label, from, to })}>
+                    <button
+                      type="button"
+                      key={label}
+                      className={draft.label === label ? "on" : ""}
+                      onClick={() => setDraft({ label, from, to })}
+                    >
                       {label}
                     </button>
                   ))}
-                  <button type="button" className={draft.label === "직접" ? "on" : ""} onClick={() => setDraft({ ...draft, label: "직접" })}>
+                  <button
+                    type="button"
+                    className={draft.label === "직접" ? "on" : ""}
+                    onClick={() => setDraft({ ...draft, label: "직접" })}
+                  >
                     직접
                   </button>
                 </div>
+
                 <div className="wd-row" style={{ gap: 8 }}>
-                  <input className="wd-input" type="month" value={draft.from} onChange={(e) => setDraft({ ...draft, label: "직접", from: e.target.value })} />
+                  <input
+                    className="wd-input"
+                    type="month"
+                    value={draft.from}
+                    onChange={(e) => setDraft({ ...draft, label: "직접", from: e.target.value })}
+                  />
                   <span className="wd-faint">~</span>
-                  <input className="wd-input" type="month" value={draft.to} onChange={(e) => setDraft({ ...draft, label: "직접", to: e.target.value })} />
+                  <input
+                    className="wd-input"
+                    type="month"
+                    value={draft.to}
+                    onChange={(e) => setDraft({ ...draft, label: "직접", to: e.target.value })}
+                  />
                 </div>
+
                 <button
                   type="button"
                   className="wd-btn full"
                   style={{ marginTop: 14 }}
                   onClick={() => {
-                    setRange(draft.from <= draft.to ? draft : { ...draft, from: draft.to, to: draft.from });
+                    setRange(
+                      draft.from <= draft.to
+                        ? draft
+                        : { ...draft, from: draft.to, to: draft.from },
+                    );
                     setPickerOpen(false);
                   }}
                 >
@@ -98,7 +142,9 @@ export default function ReceiptsPage() {
               <strong style={{ color: i === 3 && (v as number) > 0 ? "#f04452" : undefined }}>
                 {CAN_SEE_ALL ? `${won.format(v as number)}원` : "권한 필요"}
               </strong>
-              <span className="wd-t9 wd-faint" style={{ display: "block", marginTop: 5 }}>{s}</span>
+              <span className="wd-t9 wd-faint" style={{ display: "block", marginTop: 5 }}>
+                {s}
+              </span>
             </div>
           ))}
         </div>
@@ -106,60 +152,93 @@ export default function ReceiptsPage() {
         <div className="wd-between" style={{ marginBottom: 12, flexWrap: "wrap" }}>
           <div className="wd-tabs">
             {STATUSES.map((s) => (
-              <button type="button" key={s} className={status === s ? "on" : ""} onClick={() => setStatus(s)}>
+              <button
+                type="button"
+                key={s}
+                className={status === s ? "on" : ""}
+                onClick={() => setStatus(s)}
+              >
                 {s}
-                <small>{s === "전체" ? inRange.length : inRange.filter((r) => r.status === s).length}</small>
+                <small>
+                  {s === "전체"
+                    ? inRange.length
+                    : inRange.filter((r) => r.status === s).length}
+                </small>
               </button>
             ))}
           </div>
           <span className="wd-t9 wd-faint">FA · Leader 권한으로 전체 금액이 보여요</span>
         </div>
 
-        <div className="wd-card" style={{ padding: "18px 22px 6px", overflowX: "auto" }}>
-          <table className="wd-table" style={{ minWidth: 640 }}>
-            <thead>
-              <tr>
-                <th>고객사</th>
-                <th>프로젝트</th>
-                <th>상태</th>
-                <th>일자</th>
-                <th className="num">금액</th>
-              </tr>
-            </thead>
-            <tbody>
-              {months.map((m) => (
-                <Fragment key={m}>
-                  <tr className="group">
-                    <td colSpan={5}>
-                      {m.slice(0, 4)}년 {Number(m.slice(5))}월
-                    </td>
-                  </tr>
-                  {rows
-                    .filter((r) => r.month === m)
-                    .map((r) => (
-                      <tr key={r.id} style={{ cursor: "pointer" }} onClick={() => setSelected(r)}>
-                        <td><b>{r.client}</b></td>
-                        <td>{r.project}</td>
-                        <td><span className={`wd-badge ${RECEIPT_TONE[r.status]}`}>{r.status}</span></td>
-                        <td className="wd-faint">{r.date}</td>
-                        <td className="num">{won.format(r.amount)}원</td>
-                      </tr>
-                    ))}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-          {rows.length === 0 && <div className="pf-empty" style={{ padding: 30 }}>이 기간에 해당하는 내역이 없어요.</div>}
-        </div>
+        {rows.length > 0 ? (
+          <div className="wd-card" style={{ padding: "18px 22px 6px", overflowX: "auto" }}>
+            <table className="wd-table" style={{ minWidth: 640 }}>
+              <thead>
+                <tr>
+                  <th>고객사</th>
+                  <th>프로젝트</th>
+                  <th>상태</th>
+                  <th>일자</th>
+                  <th className="num">금액</th>
+                </tr>
+              </thead>
+              <tbody>
+                {months.map((m) => (
+                  <Fragment key={m}>
+                    <tr className="group">
+                      <td colSpan={5}>
+                        {m.slice(0, 4)}년 {Number(m.slice(5))}월
+                      </td>
+                    </tr>
+                    {rows
+                      .filter((r) => r.month === m)
+                      .map((r) => (
+                        <tr key={r.id} style={{ cursor: "pointer" }} onClick={() => setSelected(r)}>
+                          <td><b>{r.client}</b></td>
+                          <td>{r.project}</td>
+                          <td>
+                            <span className={`wd-badge ${RECEIPT_TONE[r.status]}`}>
+                              {r.status}
+                            </span>
+                          </td>
+                          <td className="wd-faint">{r.date}</td>
+                          <td className="num">{won.format(r.amount)}원</td>
+                        </tr>
+                      ))}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            icon="⌕"
+              title="수금 내역이 없어요"
+              description="기간이나 상태를 바꿔서 다시 확인해보세요."
+              actionLabel="필터 초기화"
+              onAction ={() => {
+                const defaultRange = {
+                  label: "최근 3개월",
+                  from: "2026-08",
+                  to: "2026-10",
+                };
+
+                setStatus("전체");
+                setRange(defaultRange);
+                setDraft(defaultRange);
+                setPickerOpen(false);
+              }}
+            />
+        )}
       </div>
 
       {selected && (
-  <ReceiptDetailModal
-    type="contract"
-    item={selected}
-    onClose={() => setSelected(null)}
-  />
-)}
+        <ReceiptDetailModal
+          type="contract"
+          item={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </WdPage>
   );
 }

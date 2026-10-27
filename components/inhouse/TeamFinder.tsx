@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { DEPARTMENTS, PEOPLE, type Person } from "@/lib/demo";
 import { Av, Eyebrow, Modal, useToast } from "./ui";
+import EmptyState from "@/components/inhouse/EmptyState";
 
 // 팀원 찾기: 검색 · 부서 필터 · 새 멤버 배너 · 조직도 · 팀원 상세
 export default function TeamFinder() {
@@ -88,7 +89,18 @@ export default function TeamFinder() {
                 </button>
               ))}
             </div>
-            {filtered.length === 0 && <div className="pf-empty">찾는 팀원이 없어요. 다른 이름이나 부서로 검색해보세요.</div>}
+            {filtered.length === 0 && (
+              <EmptyState
+                icon="⌕"
+                title="검색 결과가 없어요"
+                description="다른 단어로 찾아보거나 필터를 풀어보세요."
+                actionLabel="필터 초기화"
+                onAction={() => {
+                  setQuery("");
+                  setDept("전체");
+                }}
+              />
+            )}
           </>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", overflowX: "auto" }}>

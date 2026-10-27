@@ -6,6 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import CommunityShell, { board } from "@/components/inhouse/CommunityShell";
 import { Eyebrow } from "@/components/inhouse/ui";
 import { BOARD_CATEGORIES, COMMENTS, type Post } from "@/lib/demo";
+import EmptyState from "@/components/inhouse/EmptyState";
 
 const SORTS = ["최신순", "공감순", "댓글순"] as const;
 const TONE: Record<string, string> = { 모집: "blue", 칭찬: "green", 질문: "violet" };
@@ -75,28 +76,46 @@ function Board() {
           </div>
         </div>
       </div>
-      <div className="wd-list">
-        {shown.map((p) => (
-          <Link key={p.id} href={`/inhouse/community/${p.id}`} className={`wd-post link ${p.pinned ? "pin" : ""}`} style={{ padding: "20px 14px" }}>
-            <div>
-              <div className="wd-row" style={{ gap: 6 }}>
-                {p.pinned && <span className="wd-badge dark">고정</span>}
-                <span className={`wd-badge ${TONE[p.category] ?? ""}`}>{p.category}</span>
-              </div>
-              <b>{p.title}</b>
-              <p>{p.body.split("\n")[0]}</p>
-              <div className="wd-foot">
-                <span>{p.anonymous ? "익명" : p.author}</span>
-                <span>
-                  조회 {p.views} · 공감 {p.likes} · 댓글 {commentCount(p.id)}
-                </span>
-              </div>
-            </div>
-            <span className="wd-t9 wd-faint">{p.when}</span>
-          </Link>
-        ))}
-        {shown.length === 0 && <div className="pf-empty" style={{ padding: 40 }}>조건에 맞는 글이 없어요.</div>}
-      </div>
-    </CommunityShell>
-  );
+      {shown.length > 0 ? (
+  <div className="wd-list">
+    {shown.map((p) => (
+      <Link
+        key={p.id}
+        href={`/inhouse/community/${p.id}`}
+        className={`wd-post link ${p.pinned ? "pin" : ""}`}
+        style={{ padding: "20px 14px" }}
+      >
+        <div>
+          <div className="wd-row" style={{ gap: 6 }}>
+            {p.pinned && <span className="wd-badge dark">고정</span>}
+            <span className={`wd-badge ${TONE[p.category] ?? ""}`}>{p.category}</span>
+          </div>
+          <b>{p.title}</b>
+          <p>{p.body.split("\n")[0]}</p>
+          <div className="wd-foot">
+            <span>{p.anonymous ? "익명" : p.author}</span>
+            <span>
+              조회 {p.views} · 공감 {p.likes} · 댓글 {commentCount(p.id)}
+            </span>
+          </div>
+        </div>
+        <span className="wd-t9 wd-faint">{p.when}</span>
+      </Link>
+    ))}
+  </div>
+) : (
+  <EmptyState
+    icon="⌕"
+    title="검색 결과가 없어요"
+    description="다른 단어로 찾아보거나 필터를 풀어보세요."
+    actionLabel="필터 초기화"
+    onAction={() => {
+      setQuery("");
+      setCategory("전체");
+      setSort("최신순");
+    }}
+  />
+)}
+      </CommunityShell>
+    );
 }
