@@ -142,11 +142,13 @@ export default function LoginPage() {
             </div>
           )}
           {message && (
-          <div className="pf-login-alert" role="status">
-            <span className="pf-login-alert-icon">✓</span>
-            <div className="pf-login-alert-content">
-              <strong>가입 요청을 보냈어요</strong>
-              <p>{message}</p>
+          <div className="wd-scope" style={{ marginTop: 16 }}>
+            <div className="wd-banner" role="status" style={{ padding: "12px 14px" }}>
+              <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>✓</span>
+              <div>
+                <b>가입 요청을 보냈어요</b>
+                <p>{message}</p>
+              </div>
             </div>
           </div>
           )}
