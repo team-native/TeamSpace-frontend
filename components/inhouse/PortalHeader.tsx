@@ -5,10 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { profileKey } from "@/lib/inhouse";
-import ModalPortal from "./ModalPortal";
 import NotificationBell from "./NotificationBell";
 import ProfileAvatar from "./ProfileAvatar";
-import { PROFILE_EVENT, cropToPortrait, type Profile } from "./useProfilePhoto";
+import { PROFILE_EVENT, type Profile } from "./useProfilePhoto";
 
 const MENU: [string, string][] = [
   ["홈", "/inhouse"],
@@ -17,6 +16,12 @@ const MENU: [string, string][] = [
   ["문서함", "/inhouse/documents"],
   ["팀원 소개", "/inhouse/team"],
   ["커뮤니티", "/inhouse/community"],
+];
+
+const PROFILE_MENU: [string, string, string][] = [
+  ["내 공간", "나에게 온 결재 · 일정", "/inhouse/my"],
+  ["프로필 수정", "사진 · 소개 · 관심사", "/inhouse/my/profile"],
+  ["설정", "알림 · 테마 · 비밀번호", "/inhouse/my/settings"],
 ];
 
 const isActive = (pathname: string, href: string) =>
@@ -35,9 +40,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
   };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [editorOpen, setEditorOpen] = useState(false);
   const [profile, setProfile] = useState<Profile>(defaults);
-  const [draft, setDraft] = useState<Profile>(defaults);
   const memberRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,10 +48,8 @@ export default function PortalHeader({ member }: { member: { name: string; email
       const saved = localStorage.getItem(profileKey(member.email));
       const next = saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
       setProfile(next);
-      setDraft(next);
     } catch {
       setProfile(defaults);
-      setDraft(defaults);
     }
     const onUpdate = (e: Event) => {
       const detail = (e as CustomEvent<{ email: string; profile: Profile }>).detail;
@@ -119,28 +120,15 @@ export default function PortalHeader({ member }: { member: { name: string; email
                   </em>
                 </div>
               </div>
-              <button
-                className="pf-profile-edit"
-                role="menuitem"
-                onClick={() => {
-                  setDraft(profile);
-                  setMenuOpen(false);
-                  setEditorOpen(true);
-                }}
-              >
-                <span>
-                  <b>프로필 수정</b>
-                  <small>내 정보와 소속 변경하기</small>
-                </span>
-                <i aria-hidden="true">→</i>
-              </button>
-              <Link className="pf-profile-edit" role="menuitem" href="/inhouse/my" onClick={() => setMenuOpen(false)}>
-                <span>
-                  <b>내 공간</b>
-                  <small>나에게 온 결재 · 일정 · 설정</small>
-                </span>
-                <i aria-hidden="true">→</i>
-              </Link>
+              {PROFILE_MENU.map(([title, desc, href]) => (
+                <Link key={href} className="pf-profile-edit" role="menuitem" href={href} onClick={() => setMenuOpen(false)}>
+                  <span>
+                    <b>{title}</b>
+                    <small>{desc}</small>
+                  </span>
+                  <i aria-hidden="true">→</i>
+                </Link>
+              ))}
               <button
                 className="pf-profile-logout"
                 role="menuitem"
@@ -183,109 +171,6 @@ export default function PortalHeader({ member }: { member: { name: string; email
           </nav>
         )}
       </header>
-
-      {editorOpen && (
-        <ModalPortal>
-          <div className="pf-modal-bg" onMouseDown={(e) => e.target === e.currentTarget && setEditorOpen(false)}>
-            <section className="pf-profile-editor" role="dialog" aria-modal="true" aria-label="프로필 수정">
-              <header>
-                <div>
-                  <span>MY PROFILE</span>
-                  <h2>프로필 수정</h2>
-                </div>
-                <button type="button" onClick={() => setEditorOpen(false)} aria-label="닫기">
-                  ×
-                </button>
-              </header>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  localStorage.setItem(profileKey(member.email), JSON.stringify(draft));
-                  setProfile(draft);
-                  window.dispatchEvent(
-                    new CustomEvent(PROFILE_EVENT, { detail: { email: member.email, profile: draft } }),
-                  );
-                  setEditorOpen(false);
-                }}
-              >
-                <div className="pf-profile-photo-editor">
-                  <ProfileAvatar src={draft.photo} className="editor" />
-                  <div>
-                    <b>증명사진</b>
-                    <small>정면 사진을 선택하면 4:5 비율로 맞춰져요.</small>
-                    <span>
-                      <label>
-                        사진 선택
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) setDraft({ ...draft, photo: await cropToPortrait(file) });
-                          }}
-                        />
-                      </label>
-                      {draft.photo && (
-                        <button type="button" onClick={() => setDraft({ ...draft, photo: "" })}>
-                          사진 삭제
-                        </button>
-                      )}
-                    </span>
-                  </div>
-                </div>
-                <div className="pf-form-row">
-                  <label>
-                    <span>이름</span>
-                    <input required value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-                  </label>
-                  <label>
-                    <span>이메일</span>
-                    <input
-                      required
-                      type="email"
-                      value={draft.email}
-                      onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-                    />
-                  </label>
-                </div>
-                <div className="pf-form-row">
-                  <label>
-                    <span>소속 부서</span>
-                    <input
-                      value={draft.department}
-                      placeholder="없으면 무소속"
-                      onChange={(e) => setDraft({ ...draft, department: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <span>전공</span>
-                    <input
-                      value={draft.major}
-                      placeholder="예: iOS"
-                      onChange={(e) => setDraft({ ...draft, major: e.target.value })}
-                    />
-                  </label>
-                </div>
-                <label>
-                  <span>GitHub</span>
-                  <input
-                    value={draft.github}
-                    placeholder="github.com/username"
-                    onChange={(e) => setDraft({ ...draft, github: e.target.value })}
-                  />
-                </label>
-                <p>수정한 프로필과 사진은 현재 브라우저에 저장돼요.</p>
-                <footer>
-                  <button type="button" onClick={() => setEditorOpen(false)}>
-                    취소
-                  </button>
-                  <button type="submit">저장하기</button>
-                </footer>
-              </form>
-            </section>
-          </div>
-        </ModalPortal>
-      )}
     </>
   );
 }

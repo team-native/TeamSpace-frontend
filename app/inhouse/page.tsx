@@ -5,7 +5,18 @@ import { useEffect, useState } from "react";
 import PortalShell from "@/components/inhouse/PortalShell";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
 import { poolColor, useInhouseData, won, type InhouseData } from "@/lib/inhouse";
-import { APPROVALS, NOTICES, POSTS } from "@/lib/demo";
+import { APPROVALS, DOCS, INQUIRIES, NOTICES, PEOPLE, POSTS, RECEIPT_ROWS } from "@/lib/demo";
+
+const monthIncome = RECEIPT_ROWS.filter((r) => r.month === "2026-10" && r.status === "입금 완료").reduce((sum, r) => sum + r.amount, 0);
+
+const SHORTCUTS: [string, string, string, string, string, string][] = [
+  ["결", "전자결재", "비용 · 인력 결재 올리기", `받은 결재 ${APPROVALS.filter((a) => a.received).length}`, "blue", "/inhouse/requests"],
+  ["재", "재무", "풀 잔액과 수금 확인", `이번 달 +${monthIncome.toLocaleString("ko-KR")}`, "green", "/inhouse/finance"],
+  ["문", "문서함", "규칙과 템플릿 찾기", `개정 ${DOCS.filter((d) => d.revised).length}건`, "orange", "/inhouse/documents"],
+  ["게", "게시판", "팀 이야기 나누기", `글 ${POSTS.length}`, "violet", "/inhouse/community"],
+  ["?", "문의 · 건의", "운영진에게 묻기", `답변 ${INQUIRIES.filter((q) => q.status === "답변 완료").length}`, "", "/inhouse/community/inquiry"],
+  ["팀", "팀원", "부서와 조직도 보기", `새 멤버 ${PEOPLE.filter((p) => p.isNew).length}`, "", "/inhouse/team"],
+];
 
 export default function InhouseHome() {
   const { data, error } = useInhouseData();
@@ -46,44 +57,24 @@ export default function InhouseHome() {
                 도착할 수 있도록.
               </h2>
               <p>
-                재무 확인부터 문서 요청, 운영 기준 열람까지
+                자주 하는 일 여섯 가지를 한 화면에 모았어요.
                 <br />
-                팀에서 자주 하는 일을 짧게 연결했어요.
+                각 카드에 지금 확인할 숫자가 함께 보여요.
               </p>
             </div>
-            <div className="pf-shortcut-grid">
-              <Link className="pf-shortcut pf-reveal" href="/inhouse/requests">
-                <i>01</i>
-                <span>전자결재</span>
-                <h3>
-                  비용과 인력 지원을
-                  <br />
-                  한곳에서 요청해요.
-                </h3>
-                <b>결재 작성하기 →</b>
-              </Link>
-              <Link className="pf-shortcut pf-reveal delay" href="/inhouse/documents">
-                <i>02</i>
-                <span>문서함</span>
-                <h3>
-                  규칙과 템플릿을
-                  <br />
-                  한곳에서 찾아요.
-                </h3>
-                <b>문서 찾아보기 →</b>
-              </Link>
-              <nav className="wd-scope pf-shortcut-more" aria-label="더 많은 바로가기">
-                {[
-                  ["재무", "/inhouse/finance"],
-                  ["게시판", "/inhouse/community"],
-                  ["문의·건의", "/inhouse/community/inquiry"],
-                  ["팀원", "/inhouse/team"],
-                ].map(([label, href]) => (
-                  <Link key={href} href={href} className="wd-chip">
-                    {label} →
-                  </Link>
-                ))}
-              </nav>
+            <div className="wd-scope wd-grid g3 pf-reveal">
+              {SHORTCUTS.map(([icon, title, desc, badge, tone, href]) => (
+                <Link key={href} href={href} className="wd-card pf-home-shortcut">
+                  <div className="wd-between">
+                    <span className={`wd-av ${tone}`} style={{ borderRadius: 12 }}>
+                      {icon}
+                    </span>
+                    <span className={`wd-badge ${tone}`}>{badge}</span>
+                  </div>
+                  <b>{title}</b>
+                  <span className="wd-t10 wd-faint">{desc} →</span>
+                </Link>
+              ))}
             </div>
           </section>
 
