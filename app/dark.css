@@ -324,8 +324,6 @@ html[data-theme=dark] .wd-admin>aside{background:#1b1d22}
 html[data-theme=dark] .wd-skel{background:linear-gradient(90deg,#23262d,#e9ecef,#23262d)}
 html[data-theme=dark] .pf-profile-editor > header span{color:#8b95a1}
 html[data-theme=dark] .pf-profile-editor > form footer button[type="submit"]{background:#f2f4f6;border-color:#6b7684}
-html[data-theme=dark] .pf-login-alert{background-color:#18263b}
-html[data-theme=dark] .pf-login-alert .pf-login-alert-icon{background-color:#111214}
 html[data-theme=dark] .pf-request-top .pf-request-approval-time{background:#23262d;color:#b0b8c1}
 html[data-theme=dark] .pf-request-icon{background:#18263b}
 html[data-theme=dark] .pf-request-top .pf-request-approval-time{background:#23262d!important;color:#b0b8c1!important}

@@ -76,7 +76,7 @@ export default function SettingsPage() {
         <div className="wd-stack">
           <section className="wd-card">
             <h3>화면</h3>
-            <Row t="테마" s="다크 화면은 디자인 확정 후 적용돼요">
+            <Row t="테마" s="시스템을 고르면 기기 설정을 따라가요">
               <div className="wd-tabs">
                 {(["시스템", "라이트", "다크"] as const).map((t) => (
                   <button type="button" key={t} className={s.theme === t ? "on" : ""} onClick={() => update({ ...s, theme: t })}>
