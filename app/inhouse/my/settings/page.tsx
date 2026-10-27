@@ -63,7 +63,8 @@ export default function SettingsPage() {
   const update = (next: Settings) => {
     setS(next);
     saveLocal(KEY, next);
-    document.documentElement.dataset.theme = next.theme === "다크" ? "dark" : next.theme === "라이트" ? "light" : "";
+    const dark = next.theme === "다크" || (next.theme === "시스템" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
   };
 
   const pwError = pw.next && pw.next.length < 8 ? "8자 이상이어야 해요" : pw.again && pw.next !== pw.again ? "새 비밀번호가 서로 달라요" : "";

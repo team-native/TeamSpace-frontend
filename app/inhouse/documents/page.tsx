@@ -173,7 +173,7 @@ export default function DocumentsPage() {
 
           {revised && !revisedRead && (
             <div className="wd-scope wd-wrap" style={{ marginBottom: 40 }}>
-              <div className="wd-banner" style={{ background: "#fff8dc" }}>
+              <div className="wd-banner warn">
                 <span className="ico" style={{ color: "#9a6b00" }}>
                   !
                 </span>

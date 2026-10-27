@@ -1,0 +1,367 @@
+/* 다크모드: <html data-theme="dark"> 일 때만 적용. 설정 화면에서 테마를 고르면 붙어요 */
+
+/* 토큰 */
+html[data-theme=dark]{color-scheme:dark;--pf-ink:#f2f4f6;--pf-text:#d1d6db;--pf-muted:#8b95a1;--pf-line:#2a2d34;--pf-soft:#1b1d22;--pf-yellow-soft:#3a3015;--ih-ink:#f2f4f6;--ih-muted:#8b95a1;--ih-line:#2a2d34;--ih-soft:#23262d}
+html[data-theme=dark] body,html[data-theme=dark] .pf-shell{background:#111214;color:#f2f4f6}
+html[data-theme=dark] .pf-shell footer{background:transparent;border-top-color:#2a2d34}
+
+/* 기존 화면: globals.css · wd.css 의 라이트 색을 같은 자리에서 다크 색으로 */
+html[data-theme=dark] .ih-shell,html[data-theme=dark] .ih-login-page,html[data-theme=dark] .ih-state{color:var(--ih-ink);background:#111214}
+html[data-theme=dark] .ih-header{background:#111214db;border-bottom:1px solid #2a2d34cc}
+html[data-theme=dark] .ih-wordmark>span{background:#111214}
+html[data-theme=dark] .ih-wordmark>em{color:#8b95a1;background:#23262d}
+html[data-theme=dark] .ih-header nav{background:#1b1d22}
+html[data-theme=dark] .ih-header nav a{color:#8b95a1}
+html[data-theme=dark] .ih-header nav a:hover,html[data-theme=dark] .ih-header nav a.active{color:#f2f4f6;background:#111214}
+html[data-theme=dark] .ih-account>span{background:#18263b}
+html[data-theme=dark] .ih-hero{background:linear-gradient(#111214 0%,#1b1d22 100%)}
+html[data-theme=dark] .ih-hero-copy p{color:#8b95a1}
+html[data-theme=dark] .ih-hero-actions a{color:#8b95a1}
+html[data-theme=dark] .ih-traffic-card{background:#111214f0;border:1px solid #2a2d34e6}
+html[data-theme=dark] .ih-traffic-card:before{background:#18263b}
+html[data-theme=dark] .ih-traffic-head small b{color:#8b95a1;background:#23262d}
+html[data-theme=dark] .ih-traffic-pools>div{background:#1b1d22}
+html[data-theme=dark] .ih-traffic-pools small{color:#8b95a1}
+html[data-theme=dark] .ih-section-head>button{color:#8b95a1}
+html[data-theme=dark] .ih-balance-card,html[data-theme=dark] .ih-summary-card{background:#111214;border:1px solid #2a2d34}
+html[data-theme=dark] .ih-balance-card{color:#111214;background:#f2f4f6}
+html[data-theme=dark] .ih-summary-card:hover{box-shadow:0 24px 55px #6b768414}
+html[data-theme=dark] .ih-summary-card>span{color:#8b95a1}
+html[data-theme=dark] .ih-summary-card.income>i{background:#18263b}
+html[data-theme=dark] .ih-summary-card.expense>i{background:#1b1d22}
+html[data-theme=dark] .ih-chart-card,html[data-theme=dark] .ih-allocation-card{background:#111214;border:1px solid #2a2d34}
+html[data-theme=dark] .ih-donut>div{background:#111214}
+html[data-theme=dark] .ih-allocation-card li{border-top:1px solid #2a2d34}
+html[data-theme=dark] .ih-receipts{border-top:1px solid #2a2d34}
+html[data-theme=dark] .ih-receipt-table{border:1px solid #2a2d34}
+html[data-theme=dark] .ih-receipt-table article{border-top:1px solid #2a2d34}
+html[data-theme=dark] .ih-client-logo{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .ih-work{background:#111214}
+html[data-theme=dark] .ih-work-card{background:#1b1d22}
+html[data-theme=dark] .ih-work-card:hover{box-shadow:0 24px 55px #6b768414}
+html[data-theme=dark] .ih-work-card p{color:#8b95a1}
+html[data-theme=dark] .ih-work-card button,html[data-theme=dark] .ih-work-card a{color:#d1d6db;border-top:1px solid #2a2d34}
+html[data-theme=dark] .ih-work-art{background:#111214}
+html[data-theme=dark] .ih-work-art i{border:1px solid #2a2d34}
+html[data-theme=dark] .ih-update-copy p{color:#8b95a1}
+html[data-theme=dark] .ih-update-list{border-top:1px solid #2a2d34}
+html[data-theme=dark] .ih-update-list a{border-bottom:1px solid #2a2d34}
+html[data-theme=dark] .ih-update-list>button{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .ih-rule-banner>.ih-reveal{color:#111214;background:#f2f4f6}
+html[data-theme=dark] .ih-rule-banner a{color:#f2f4f6;background:#111214}
+html[data-theme=dark] .ih-footer{border-top:1px solid #2a2d34}
+html[data-theme=dark] .ih-state>b{background:#1b1d22}
+html[data-theme=dark] .ih-state p{color:#8b95a1}
+html[data-theme=dark] .ih-budget-modal{background:#111214}
+html[data-theme=dark] .ih-budget-modal header{border-bottom:1px solid #2a2d34}
+html[data-theme=dark] .ih-budget-modal header>button{background:#23262d}
+html[data-theme=dark] .ih-budget-modal label>span{color:#b0b8c1}
+html[data-theme=dark] .ih-budget-modal input,html[data-theme=dark] .ih-budget-modal select,html[data-theme=dark] .ih-budget-modal textarea{color:#f2f4f6;background:#1b1d22;border:1px solid #2a2d34}
+html[data-theme=dark] .ih-budget-modal input:focus,html[data-theme=dark] .ih-budget-modal select:focus,html[data-theme=dark] .ih-budget-modal textarea:focus{background:#111214}
+html[data-theme=dark] .ih-budget-notice{background:#1b1d22}
+html[data-theme=dark] .ih-budget-notice p{color:#b0b8c1}
+html[data-theme=dark] .ih-budget-modal footer button{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .ih-login-brand{color:#111214;background:#f2f4f6}
+html[data-theme=dark] .ih-login-panel{background:#111214}
+html[data-theme=dark] .ih-login-tabs{background:#23262d}
+html[data-theme=dark] .ih-login-tabs button.active{color:#f2f4f6;background:#111214}
+html[data-theme=dark] .ih-login-form label span{color:#b0b8c1}
+html[data-theme=dark] .ih-login-form input{background:#1b1d22;border:1px solid #2a2d34}
+html[data-theme=dark] .ih-login-form input:focus{background:#111214}
+html[data-theme=dark] .ih-form-alert{background:#1b1d22}
+html[data-theme=dark] .ih-form-alert.error{background:#1b1d22}
+html[data-theme=dark] .pf-shell{color:var(--pf-ink);background:#111214}
+html[data-theme=dark] .pf-header{background:#111214e0;border-bottom:1px solid #2a2d34cc}
+html[data-theme=dark] .pf-brand{color:var(--pf-ink)}
+html[data-theme=dark] .pf-brand>em{background:#23262d}
+html[data-theme=dark] .pf-header nav a{color:#8b95a1}
+html[data-theme=dark] .pf-header nav a:hover,html[data-theme=dark] .pf-header nav a.active{color:var(--pf-ink);background:#23262d}
+html[data-theme=dark] .pf-member>span{background:var(--pf-yellow-soft)}
+html[data-theme=dark] .pf-member button{color:#8b95a1;background:#23262d}
+html[data-theme=dark] .pf-state>b{background:#1b1d22}
+html[data-theme=dark] .pf-state button{background:var(--pf-ink);color:#111214}
+html[data-theme=dark] .pf-loading i{background:var(--pf-yellow)}
+html[data-theme=dark] .pf-home-copy>span i{background:var(--pf-yellow);box-shadow:0 0 0 5px var(--pf-yellow-soft)}
+html[data-theme=dark] .pf-home-copy p{color:#8b95a1}
+html[data-theme=dark] .pf-finance-preview{border:1px solid var(--pf-line);background:linear-gradient(145deg,#111214 0%,#1b1d22 60%,#fff9df 100%);box-shadow:0 24px 80px #6b76840f}
+html[data-theme=dark] .pf-preview-main small{color:#8b95a1}
+html[data-theme=dark] .pf-preview-meta>a{background:var(--pf-ink);color:#111214}
+html[data-theme=dark] .pf-shortcuts{background:#1b1d22}
+html[data-theme=dark] .pf-section-copy p{color:#8b95a1}
+html[data-theme=dark] .pf-shortcut{border:1px solid var(--pf-line);color:var(--pf-ink);background:#111214}
+html[data-theme=dark] .pf-shortcut:hover{box-shadow:0 28px 70px #6b768414}
+html[data-theme=dark] .pf-shortcut>i{background:var(--pf-yellow-soft)}
+html[data-theme=dark] .pf-shortcut>b{border-top:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-recent-list{border-top:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-recent-list a{border-bottom:1px solid var(--pf-line);color:var(--pf-ink)}
+html[data-theme=dark] .pf-footer{border-top:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-footer b{color:var(--pf-ink)}
+html[data-theme=dark] .pf-page-hero p,html[data-theme=dark] .pf-doc-hero p{color:#8b95a1}
+html[data-theme=dark] .pf-request-card{border:1px solid var(--pf-line);color:var(--pf-ink);background:#111214}
+html[data-theme=dark] .pf-request-card:hover{box-shadow:0 24px 55px #6b768414}
+html[data-theme=dark] .pf-request-card>i{background:var(--pf-yellow-soft)}
+html[data-theme=dark] .pf-request-card p{color:#8b95a1}
+html[data-theme=dark] .pf-request-history{border-top:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-request-history article{border:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-request-history article>i{background:var(--pf-yellow-soft)}
+html[data-theme=dark] .pf-modal-bg{background:#f2f4f661}
+html[data-theme=dark] .pf-request-modal{background:#111214}
+html[data-theme=dark] .pf-request-modal>header{border-bottom:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-request-modal header>button{background:#23262d}
+html[data-theme=dark] .pf-request-modal label>span{color:#b0b8c1}
+html[data-theme=dark] .pf-request-modal input,html[data-theme=dark] .pf-request-modal textarea{border:1px solid var(--pf-line);background:#1b1d22}
+html[data-theme=dark] .pf-request-modal form footer button,html[data-theme=dark] .pf-request-done button{background:#23262d}
+html[data-theme=dark] .pf-request-modal form footer button:last-child,html[data-theme=dark] .pf-request-done button{background:var(--pf-ink);color:#111214}
+html[data-theme=dark] .pf-doc-hero label{border:1px solid var(--pf-line);background:#1b1d22}
+html[data-theme=dark] .pf-doc-body aside button{color:#8b95a1}
+html[data-theme=dark] .pf-doc-body aside button.active{color:var(--pf-ink);background:#23262d}
+html[data-theme=dark] .pf-doc-list>header{border-bottom:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-doc-list article{border-bottom:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-login-page{color:var(--pf-ink);background:#111214}
+html[data-theme=dark] .pf-login-brand{color:var(--pf-ink)}
+html[data-theme=dark] .pf-login-brand em{background:#23262d}
+html[data-theme=dark] .pf-login-form>label input:not([type=checkbox]){border:1px solid var(--pf-line);background:#111214}
+html[data-theme=dark] .pf-remember{color:#8b95a1}
+html[data-theme=dark] .pf-remember input:checked+i{border-color:var(--pf-ink);background:var(--pf-ink)}
+html[data-theme=dark] .pf-login-alert{background:var(--pf-yellow-soft)}
+html[data-theme=dark] .pf-login-alert.error{background:#1b1d22}
+html[data-theme=dark] .pf-login-submit{background:var(--pf-ink);color:#111214}
+html[data-theme=dark] .pf-login-submit:hover{box-shadow:0 10px 24px #6b76841f}
+html[data-theme=dark] .pf-login-switch button{color:var(--pf-ink)}
+html[data-theme=dark] .pf-login-page>footer{border-top:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-finance .ih-shell,html[data-theme=dark] .pf-finance{background:#111214}
+html[data-theme=dark] .pf-finance .ih-kicker i,html[data-theme=dark] .pf-finance .ih-loader i{background:var(--pf-yellow)}
+html[data-theme=dark] .pf-finance .ih-hero-actions button{background:var(--pf-ink)}
+html[data-theme=dark] .pf-finance .ih-balance-card{border:1px solid var(--pf-line);color:var(--pf-ink);background:#111214}
+html[data-theme=dark] .pf-finance .ih-balance-bottom i{background:var(--pf-yellow-soft)}
+html[data-theme=dark] .pf-finance .ih-summary-card.income,html[data-theme=dark] .pf-finance .ih-summary-card.expense,html[data-theme=dark] .pf-finance .ih-summary-card.reserve{background:#1b1d22}
+html[data-theme=dark] .pf-finance .ih-summary-card.income strong,html[data-theme=dark] .pf-finance .ih-summary-card.expense strong,html[data-theme=dark] .pf-finance .ih-summary-card.reserve strong{color:var(--pf-ink)}
+html[data-theme=dark] .pf-finance .ih-work-art b,html[data-theme=dark] .pf-finance .ih-work-card.documents .ih-work-art b,html[data-theme=dark] .pf-finance .ih-work-card.rules .ih-work-art b{background:var(--pf-ink)}
+html[data-theme=dark] .pf-finance .ih-rule-banner>.ih-reveal{color:var(--pf-ink);background:#1b1d22}
+html[data-theme=dark] .pf-finance .ih-rule-banner a{background:var(--pf-ink);color:#111214}
+html[data-theme=dark] .pf-member button:hover{color:#f2f4f6;background:#2a2d34}
+html[data-theme=dark] .pf-balance-filter{background:#23262d}
+html[data-theme=dark] .pf-balance-filter button.active{color:#f2f4f6;background:#111214;box-shadow:0 3px 10px #6b768414}
+html[data-theme=dark] .pf-request-top>i{background:#111214}
+html[data-theme=dark] .pf-request-top>i:before{background:#23262d}
+html[data-theme=dark] .pf-receipts-copy p{color:#8b95a1}
+html[data-theme=dark] .pf-receipts-summary article{border:1px solid var(--pf-line);background:#111214}
+html[data-theme=dark] .pf-receipts-summary article:hover{box-shadow:0 20px 50px #6b768412}
+html[data-theme=dark] .pf-receipts-summary span{color:#8b95a1}
+html[data-theme=dark] .pf-receipts-body nav{background:#23262d}
+html[data-theme=dark] .pf-receipts-body nav button.active{color:#f2f4f6;background:#111214;box-shadow:0 3px 10px #6b768412}
+html[data-theme=dark] .pf-receipts-table{border-top:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-receipts-table article{border-top:1px solid #2a2d34}
+html[data-theme=dark] .pf-receipt-client>i{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .pf-receipts-table em{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .pf-receipts-table em.done{background:#18263b}
+html[data-theme=dark] .pf-receipts-table em.scheduled{background:#1b1d22}
+html[data-theme=dark] .ih-section-link{color:#8b95a1}
+html[data-theme=dark] .ih-section-link:hover{color:#f2f4f6}
+html[data-theme=dark] .pf-member>span{color:#111214;background:#f2f4f6}
+html[data-theme=dark] .pf-menu-button{border:1px solid var(--pf-line)!important;background:#111214!important}
+html[data-theme=dark] .pf-menu-button i{background:#f2f4f6}
+html[data-theme=dark] .pf-mobile-menu{border:1px solid var(--pf-line);background:#111214fa;box-shadow:0 18px 45px #6b76841a}
+html[data-theme=dark] .pf-mobile-menu a.active{background:#23262d}
+html[data-theme=dark] .pf-finance-preview{background:#111214}
+html[data-theme=dark] .pf-home-pools>div{border:1px solid var(--pf-line);background:#111214}
+html[data-theme=dark] .pf-home-pools span{color:#8b95a1}
+html[data-theme=dark] .pf-shortcut>i{color:#8b95a1;background:#23262d}
+html[data-theme=dark] .pf-recent-list>a>span,html[data-theme=dark] .pf-doc-list article>small{color:#8b95a1}
+html[data-theme=dark] .pf-request-card>small{color:#8b95a1}
+html[data-theme=dark] .pf-request-history article>i{color:#8b95a1;background:#23262d}
+html[data-theme=dark] .pf-request-done>i{color:#f2f4f6;background:#23262d}
+html[data-theme=dark] .pf-request-modal header span{color:#8b95a1}
+html[data-theme=dark] .pf-login-alert{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .pf-doc-hero label{background:#111214}
+html[data-theme=dark] .pf-finance .ih-shell{color:#f2f4f6;background:#111214}
+html[data-theme=dark] .pf-finance .ih-hero{background:#111214}
+html[data-theme=dark] .pf-finance .ih-kicker,html[data-theme=dark] .pf-finance .ih-section-head>div>span,html[data-theme=dark] .pf-finance .ih-chart-head>div>span,html[data-theme=dark] .pf-finance .ih-allocation-card>span{color:#8b95a1}
+html[data-theme=dark] .pf-finance .ih-hero-actions a{color:#111214;background:#f2f4f6}
+html[data-theme=dark] .pf-finance .ih-traffic-card{border:1px solid var(--pf-line);color:#f2f4f6;background:#111214}
+html[data-theme=dark] .pf-finance .ih-flow-line,html[data-theme=dark] .pf-finance .ih-flow-line:before{border-color:#2a2d34}
+html[data-theme=dark] .pf-finance .ih-flow-line i{background:#f2f4f6;box-shadow:0 0 0 5px #23262d}
+html[data-theme=dark] .pf-finance .ih-traffic-pools>div{border:1px solid var(--pf-line);background:#111214}
+html[data-theme=dark] .pf-finance .ih-traffic-pools span{color:#8b95a1}
+html[data-theme=dark] .pf-finance .ih-summary-card.income,html[data-theme=dark] .pf-finance .ih-summary-card.expense,html[data-theme=dark] .pf-finance .ih-summary-card.reserve{border:1px solid var(--pf-line);background:#111214}
+html[data-theme=dark] .pf-finance .ih-balance-bottom b,html[data-theme=dark] .pf-finance .ih-summary-card.income>strong,html[data-theme=dark] .pf-finance .ih-summary-card.expense>strong,html[data-theme=dark] .pf-finance .ih-summary-card.reserve>strong{color:#f2f4f6}
+html[data-theme=dark] .pf-finance .ih-summary-card>i,html[data-theme=dark] .pf-finance .ih-summary-card.income>i,html[data-theme=dark] .pf-finance .ih-summary-card.expense>i,html[data-theme=dark] .pf-finance .ih-summary-card.reserve>i{color:#8b95a1;background:#23262d}
+html[data-theme=dark] .pf-finance .ih-receipt-table .done,html[data-theme=dark] .pf-finance .ih-receipt-table .scheduled{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .pf-brand>b{color:#b0b8c1}
+html[data-theme=dark] .pf-logout-button{box-shadow:0 2px 8px #6b768408;color:#b0b8c1!important;background:#111214!important;border:1px solid #2a2d34!important}
+html[data-theme=dark] .pf-logout-button:hover{box-shadow:0 7px 18px #6b768412;background:#1b1d22!important}
+html[data-theme=dark] .ih-receipt-table .ih-receipt-row{color:#f2f4f6;background:#111214;border-top:1px solid #2a2d34}
+html[data-theme=dark] .ih-receipt-table .ih-receipt-row:hover{background:#1b1d22}
+html[data-theme=dark] .ih-receipt-row>span{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .pf-request-history .pf-history-row{border:1px solid var(--pf-line);color:#f2f4f6;background:#111214}
+html[data-theme=dark] .pf-request-history .pf-history-row:hover{box-shadow:0 18px 45px #6b768412}
+html[data-theme=dark] .pf-history-row>i{color:#8b95a1;background:#23262d}
+html[data-theme=dark] .pf-detail-modal{background:#111214}
+html[data-theme=dark] .pf-detail-modal>header{border-bottom:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-detail-modal header span{color:#8b95a1}
+html[data-theme=dark] .pf-detail-modal header>button{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .pf-detail-amount{background:#1b1d22}
+html[data-theme=dark] .pf-detail-amount>span{color:#8b95a1;background:#111214}
+html[data-theme=dark] .pf-detail-body dl>div{border-bottom:1px solid #2a2d34}
+html[data-theme=dark] .pf-detail-body dd{color:#d1d6db}
+html[data-theme=dark] .pf-detail-close{color:#111214;background:#f2f4f6}
+html[data-theme=dark] .pf-approval-step{border:1px solid #2a2d34}
+html[data-theme=dark] .pf-team-hero p{color:#8b95a1}
+html[data-theme=dark] .pf-team-count{border:1px solid var(--pf-line)}
+html[data-theme=dark] .pf-team-count span{color:#8b95a1}
+html[data-theme=dark] .pf-team-body nav{background:#23262d}
+html[data-theme=dark] .pf-team-body nav button.active{color:#f2f4f6;background:#111214;box-shadow:0 3px 10px #6b768412}
+html[data-theme=dark] .pf-team-card{border:1px solid var(--pf-line);background:#111214}
+html[data-theme=dark] .pf-team-card:hover{box-shadow:0 14px 38px #6b76840f}
+html[data-theme=dark] .pf-team-card.lead{background:linear-gradient(110deg,#111214,#1b1d22)}
+html[data-theme=dark] .pf-team-avatar{background:#23262d}
+html[data-theme=dark] .pf-team-card.lead .pf-team-avatar{background:#18263b}
+html[data-theme=dark] .pf-team-card dd{color:#b0b8c1}
+html[data-theme=dark] .pf-team-card.lead .pf-team-github{background:#111214;border:1px solid #2a2d34}
+html[data-theme=dark] .pf-member>.pf-profile-trigger{color:#f2f4f6!important}
+html[data-theme=dark] .pf-member>.pf-profile-trigger:hover,html[data-theme=dark] .pf-member>.pf-profile-trigger.open{box-shadow:0 6px 18px #6b76840f;background:#111214!important;border-color:#2a2d34!important}
+html[data-theme=dark] .pf-profile-avatar{color:#111214;background:#f2f4f6}
+html[data-theme=dark] .pf-member>.pf-profile-menu{background:#111214fa;border:1px solid #2a2d34;box-shadow:0 20px 60px #6b768426}
+html[data-theme=dark] .pf-profile-account{border-bottom:1px solid #2a2d34}
+html[data-theme=dark] .pf-profile-account>span{background:#18263b}
+html[data-theme=dark] .pf-member .pf-profile-logout{color:#d1d6db!important}
+html[data-theme=dark] .pf-member .pf-profile-logout:hover{background:#23262d!important}
+html[data-theme=dark] .pf-modal-bg{background:#f2f4f661}
+html[data-theme=dark] .pf-request-modal input,html[data-theme=dark] .pf-request-modal textarea,html[data-theme=dark] .pf-request-modal select{border:1px solid var(--pf-line);color:#f2f4f6;background:#1b1d22}
+html[data-theme=dark] .pf-request-modal select{background:#1b1d22 linear-gradient(45deg,#0000 50%,#8b95a1 50%) calc(100% - 17px) 52%/5px 5px no-repeat}
+html[data-theme=dark] .pf-balance-filter button:last-child.active{color:#111214;background:#f2f4f6}
+html[data-theme=dark] .pf-member .pf-profile-edit{color:#d1d6db!important}
+html[data-theme=dark] .pf-member .pf-profile-edit:hover{background:#23262d!important}
+html[data-theme=dark] .pf-profile-editor{background:#111214}
+html[data-theme=dark] .pf-profile-editor>header{border-bottom:1px solid #2a2d34}
+html[data-theme=dark] .pf-profile-editor>header button{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .pf-profile-editor-preview{background:#1b1d22}
+html[data-theme=dark] .pf-profile-editor label>span{color:#b0b8c1}
+html[data-theme=dark] .pf-profile-editor input{color:#f2f4f6;background:#1b1d22;border:1px solid #2a2d34}
+html[data-theme=dark] .pf-profile-editor footer button{color:#b0b8c1;background:#23262d}
+html[data-theme=dark] .np-team-page{color:#f2f4f6;background:#111214}
+html[data-theme=dark] .np-team-copy>span{color:#8b95a1}
+html[data-theme=dark] .np-team-copy>p{color:#8b95a1}
+html[data-theme=dark] .np-founder-card{color:#111214;background:#f2f4f6;box-shadow:0 28px 70px #6b768426}
+html[data-theme=dark] .np-team-directory{background:#1b1d22}
+html[data-theme=dark] .np-team-switch button{color:#8b95a1}
+html[data-theme=dark] .np-team-switch button.active{color:#f2f4f6;background:#111214;border-color:#2a2d34;box-shadow:0 9px 25px #6b768412}
+html[data-theme=dark] .np-team-switch em{color:#8b95a1;background:#23262d}
+html[data-theme=dark] .np-brand-mark{background:#111214;border:1px solid #2a2d34b3}
+html[data-theme=dark] .np-leader-card{background:linear-gradient(112deg,#111214 0%,#1b1d22 100%)}
+html[data-theme=dark] .np-leader-card dd,html[data-theme=dark] .np-member-card dd{color:#b0b8c1}
+html[data-theme=dark] .np-leader-role b{background:#18263b}
+html[data-theme=dark] .np-member-card{background:#111214;border:1px solid #2a2d34}
+html[data-theme=dark] .np-member-github{background:#23262d}
+html[data-theme=dark] .pf-home-pools>div{border-color:#2a2d34}
+html[data-theme=dark] .pf-home-pools>div:hover{box-shadow:inset 0 3px 0 var(--pool-color),0 12px 28px #6b768412}
+html[data-theme=dark] .pf-home-pools>.pool-operation{background:linear-gradient(150deg,#111214,#1b1d22)}
+html[data-theme=dark] .pf-home-pools>.pool-reserve{background:linear-gradient(150deg,#111214,#1b1d22)}
+html[data-theme=dark] .pf-home-pools>.pool-dividend{background:linear-gradient(150deg,#111214,#1b1d22)}
+html[data-theme=dark] .pf-finance .ih-traffic-pools>div{border:1px solid #2a2d34}
+html[data-theme=dark] .pf-finance .ih-traffic-pools>.pool-operation{background:linear-gradient(150deg,#111214,#1b1d22)}
+html[data-theme=dark] .pf-finance .ih-traffic-pools>.pool-reserve{background:linear-gradient(150deg,#111214,#1b1d22)}
+html[data-theme=dark] .pf-finance .ih-traffic-pools>.pool-dividend{background:linear-gradient(150deg,#111214,#1b1d22)}
+html[data-theme=dark] .pf-finance .ih-balance-bottom i{background:#11121429}
+html[data-theme=dark] .pf-finance .ih-summary-card.reserve{background:linear-gradient(145deg,#111214,#1b1d22);border-color:#2a2d34}
+html[data-theme=dark] .pf-member>.pf-profile-trigger{box-shadow:0 5px 16px #6b76840b;background:#111214!important;border-color:#2a2d34!important}
+html[data-theme=dark] .pf-profile-avatar{border:1px solid #2a2d34;background:linear-gradient(145deg,#1b1d22,#e9eef4)!important}
+html[data-theme=dark] .pf-member>.pf-profile-menu{background:#111214fb;border-color:#2a2d34;box-shadow:0 26px 70px #6b768429}
+html[data-theme=dark] .pf-profile-account{background:linear-gradient(135deg,#1b1d22,#1b1d22)}
+html[data-theme=dark] .pf-profile-account em{color:#8b95a1}
+html[data-theme=dark] .pf-profile-photo-editor{background:linear-gradient(135deg,#1b1d22,#1b1d22);border:1px solid #2a2d34}
+html[data-theme=dark] .pf-profile-photo-editor button{color:#8b95a1;background:#111214}
+html[data-theme=dark] .np-founder-card{color:#f2f4f6;background:linear-gradient(145deg,#111214 0%,#1b1d22 100%);border:1px solid #2a2d34}
+html[data-theme=dark] .np-avatar{background:linear-gradient(145deg,#1b1d22,#e6ebf1);border:1px solid #2a2d34}
+html[data-theme=dark] .np-founder-profile small{color:#8b95a1}
+html[data-theme=dark] .np-founder-info{background:#111214c7;border:1px solid #2a2d34}
+html[data-theme=dark] .np-founder-info>p{color:#b0b8c1}
+html[data-theme=dark] .np-founder-info dl{border-top:1px solid #2a2d34}
+html[data-theme=dark] .np-founder-info dd{color:#d1d6db}
+html[data-theme=dark] .np-role-tags span{color:#b0b8c1;background:#111214}
+html[data-theme=dark] .np-team-directory{background:#1b1d22}
+html[data-theme=dark] .np-member-card:hover{box-shadow:0 13px 32px #6b768411}
+html[data-theme=dark] .wd-card{background:#111214}
+html[data-theme=dark] .wd-btn.line{background:#111214}
+html[data-theme=dark] .wd-btn.danger{background:#1b1d22}
+html[data-theme=dark] .wd-tabs span.on{background:#111214;box-shadow:0 3px 10px #6b768412}
+html[data-theme=dark] .wd-chip{background:#111214}
+html[data-theme=dark] .wd-badge.red{background:#1b1d22}
+html[data-theme=dark] .wd-input{background:#1b1d22}
+html[data-theme=dark] .wd-input.focus{background:#111214}
+html[data-theme=dark] .wd-search{background:#111214}
+html[data-theme=dark] .wd-seg span{background:#111214}
+html[data-theme=dark] .wd-toggle:after{background:#111214}
+html[data-theme=dark] .wd-check{border:1.5px solid #3a3e46}
+html[data-theme=dark] .wd-radio{border:1.5px solid #3a3e46}
+html[data-theme=dark] .wd-li.unread{background:linear-gradient(90deg,#1b1d22,#111214 70%)}
+html[data-theme=dark] .wd-banner .ico{background:#111214}
+html[data-theme=dark] .wd-banner.dark .ico{background:#1112141a}
+html[data-theme=dark] .wd-scrim{background:#f2f4f661}
+html[data-theme=dark] .wd-modal{background:#111214}
+html[data-theme=dark] .wd-alert{background:#111214}
+html[data-theme=dark] .wd-alert .ico.red{background:#1b1d22}
+html[data-theme=dark] .wd-pop{background:#111214;box-shadow:0 24px 60px #6b76841f}
+html[data-theme=dark] .wd-toast{box-shadow:0 14px 40px #6b768440}
+html[data-theme=dark] .wd-line .now .wd-av{background:#111214}
+html[data-theme=dark] .wd-file{background:#111214}
+html[data-theme=dark] .wd-file .ext{background:#1b1d22}
+html[data-theme=dark] .wd-drop{border:1.5px dashed #3a3e46;background:#1b1d22}
+html[data-theme=dark] .wd-cal>div.dim{background:#1b1d22}
+html[data-theme=dark] .wd-cal>div.head{background:#111214}
+html[data-theme=dark] .wd-tl>div:before{background:#111214;border:2px solid #3a3e46}
+html[data-theme=dark] .wd-post.pin{background:#1b1d22}
+html[data-theme=dark] .wd-index a{border-bottom:1px solid #2a2d34;color:#f2f4f6}
+html[data-theme=dark] .wd-scope .wd-tabs button.on{background:#111214;box-shadow:0 3px 10px #6b768412}
+html[data-theme=dark] .wd-scope .wd-seg button{background:#111214}
+html[data-theme=dark] .wd-scope input.wd-input:focus,html[data-theme=dark] .wd-scope textarea.wd-input:focus,html[data-theme=dark] .wd-scope select.wd-input:focus{background:#111214}
+html[data-theme=dark] .wd-scope .wd-li.link:hover,html[data-theme=dark] .wd-scope .wd-post.link:hover{background:#1b1d22}
+html[data-theme=dark] .np-team-finder{background:#111214}
+html[data-theme=dark] .pf-request-box{border-top:1px solid #2a2d34}
+html[data-theme=dark] .wd-board{background:#111214}
+html[data-theme=dark] .wd-mhead{background:#111214}
+html[data-theme=dark] .wd-admin>aside{background:#1b1d22}
+html[data-theme=dark] .wd-skel{background:linear-gradient(90deg,#23262d,#e9ecef,#23262d)}
+html[data-theme=dark] .pf-profile-editor > header span{color:#8b95a1}
+html[data-theme=dark] .pf-profile-editor > form footer button[type="submit"]{background:#f2f4f6;border-color:#6b7684}
+html[data-theme=dark] .pf-login-alert{background-color:#18263b}
+html[data-theme=dark] .pf-login-alert .pf-login-alert-icon{background-color:#111214}
+html[data-theme=dark] .pf-request-top .pf-request-approval-time{background:#23262d;color:#b0b8c1}
+html[data-theme=dark] .pf-request-icon{background:#18263b}
+html[data-theme=dark] .pf-request-top .pf-request-approval-time{background:#23262d!important;color:#b0b8c1!important}
+html[data-theme=dark] .wd-banner.warn{background:#3a3015}
+html[data-theme=dark] .wd-banner.danger{background:#1b1d22}
+
+/* 새 화면(wd-scope): 시안 .dk .wd-screen 규칙과 같은 값 */
+html[data-theme=dark] .wd-scope{--wd-ink:#f2f4f6;--wd-text:#d1d6db;--wd-sub:#b0b8c1;--wd-muted:#8b95a1;--wd-faint:#6b7684;--wd-ghost:#4e5968;--wd-line:#2a2d34;--wd-soft:#23262d;--wd-bg:#1b1d22;--wd-blue:#4c94ff;--wd-blue-deep:#8ab8ff;--wd-blue-soft:#18263b;color:var(--wd-ink)}
+html[data-theme=dark] .pf-header{background:#111214;border-color:#2a2d34}
+html[data-theme=dark] .pf-header nav a{color:#8b95a1}
+html[data-theme=dark] .pf-header nav a.active{background:#23262d;color:#f2f4f6}
+html[data-theme=dark] .pf-brand>b,html[data-theme=dark] .wd-scope .wd-me b{color:#f2f4f6}
+html[data-theme=dark] .wd-scope .wd-me>span:first-child,html[data-theme=dark] .wd-scope .wd-av{background:#23262d;color:#b0b8c1}
+html[data-theme=dark] .wd-scope .wd-av.dark{background:#f2f4f6;color:#111214}
+html[data-theme=dark] .wd-scope .wd-card,html[data-theme=dark] .wd-scope .wd-file,html[data-theme=dark] .wd-scope .wd-chip,html[data-theme=dark] .wd-scope .wd-seg span,html[data-theme=dark] .wd-scope .wd-btn.line{background:#18191d}
+html[data-theme=dark] .wd-scope .wd-card.soft{background:#1b1d22}
+html[data-theme=dark] .wd-scope .wd-input{background:#1b1d22;color:#f2f4f6}
+html[data-theme=dark] .wd-scope .wd-btn{background:#f2f4f6;color:#111214}
+html[data-theme=dark] .wd-scope .wd-btn.blue{background:#4c94ff;color:#fff}
+html[data-theme=dark] .wd-scope .wd-btn.ghost{background:#23262d;color:#d1d6db}
+html[data-theme=dark] .wd-scope .wd-btn.danger{background:#3a1d22;color:#ff6b78}
+html[data-theme=dark] .wd-scope .wd-tabs span.on{background:#2a2d34;color:#f2f4f6;box-shadow:none}
+html[data-theme=dark] .wd-scope .wd-badge.green{background:#15301f;color:#5ccf8f}
+html[data-theme=dark] .wd-scope .wd-badge.orange{background:#36230f;color:#ffa65c}
+html[data-theme=dark] .wd-scope .wd-badge.red{background:#3a1d22;color:#ff6b78}
+html[data-theme=dark] .wd-scope .wd-badge.violet{background:#251d45;color:#a995ff}
+html[data-theme=dark] .wd-scope .wd-badge.blue{background:#18263b;color:#8ab8ff}
+html[data-theme=dark] .wd-scope .wd-badge.dark{background:#f2f4f6;color:#111214}
+html[data-theme=dark] .wd-scope .wd-banner.dark{background:#1d2a40}
+html[data-theme=dark] .wd-scope .wd-line .now .wd-av{background:#111214}
+html[data-theme=dark] .wd-scope .wd-li.unread{background:linear-gradient(90deg,#16202e,#18191d 70%)}
+html[data-theme=dark] .wd-scope .wd-bell b{border-color:#111214}
+html[data-theme=dark] .wd-scope .wd-btn.line{color:#d1d6db;border-color:#2a2d34}
+html[data-theme=dark] .wd-scope .wd-chip{color:#b0b8c1}
+
+/* 화면별 보정 */
+html[data-theme=dark] .wd-scope .wd-card,html[data-theme=dark] .wd-scope .wd-file{background:#18191d}
+html[data-theme=dark] .wd-banner.warn{background:#3a3015}
+html[data-theme=dark] .wd-banner.danger{background:#3a1d22}
