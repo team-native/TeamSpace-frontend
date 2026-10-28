@@ -1,0 +1,2 @@
+/* 운영 관리(/inhouse/admin) 전용 스타일 */
+.wd-admin .wd-toc a{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:9px;color:var(--wd-muted);font-size:10px;font-weight:600;text-decoration:none}.wd-admin .wd-toc a.on{background:var(--wd-soft);color:var(--wd-ink)}.wd-admin .wd-toc a b{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--wd-red);color:#fff;font-size:9px;line-height:18px;text-align:center}.wd-toggle:disabled{opacity:.55;cursor:not-allowed}

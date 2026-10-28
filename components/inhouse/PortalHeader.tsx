@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { isAdmin } from "@/lib/admin";
+import { ME } from "@/lib/demo";
 import { profileKey } from "@/lib/inhouse";
 import NotificationBell from "./NotificationBell";
 import ProfileAvatar from "./ProfileAvatar";
@@ -23,6 +25,8 @@ const PROFILE_MENU: [string, string, string][] = [
   ["프로필 수정", "사진 · 소개 · 관심사", "/inhouse/my/profile"],
   ["설정", "알림 · 테마 · 비밀번호", "/inhouse/my/settings"],
 ];
+// 운영진(Leader · NativeOps · FA)에게만 보이는 메뉴
+const ADMIN_MENU: [string, string, string] = ["운영 관리", "공지 · 문의 · 신고 · 재정", "/inhouse/admin"];
 
 const isActive = (pathname: string, href: string) =>
   href === "/inhouse" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -120,7 +124,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
                   </em>
                 </div>
               </div>
-              {PROFILE_MENU.map(([title, desc, href]) => (
+              {(isAdmin(ME.dept) ? [...PROFILE_MENU, ADMIN_MENU] : PROFILE_MENU).map(([title, desc, href]) => (
                 <Link key={href} className="pf-profile-edit" role="menuitem" href={href} onClick={() => setMenuOpen(false)}>
                   <span>
                     <b>{title}</b>
