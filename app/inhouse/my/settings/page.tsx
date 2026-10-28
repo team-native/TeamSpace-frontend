@@ -63,7 +63,8 @@ export default function SettingsPage() {
   const update = (next: Settings) => {
     setS(next);
     saveLocal(KEY, next);
-    document.documentElement.dataset.theme = next.theme === "다크" ? "dark" : next.theme === "라이트" ? "light" : "";
+    const dark = next.theme === "다크" || (next.theme === "시스템" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
   };
 
   const pwError = pw.next && pw.next.length < 8 ? "8자 이상이어야 해요" : pw.again && pw.next !== pw.again ? "새 비밀번호가 서로 달라요" : "";
@@ -75,7 +76,7 @@ export default function SettingsPage() {
         <div className="wd-stack">
           <section className="wd-card">
             <h3>화면</h3>
-            <Row t="테마" s="다크 화면은 디자인 확정 후 적용돼요">
+            <Row t="테마" s="시스템을 고르면 기기 설정을 따라가요">
               <div className="wd-tabs">
                 {(["시스템", "라이트", "다크"] as const).map((t) => (
                   <button type="button" key={t} className={s.theme === t ? "on" : ""} onClick={() => update({ ...s, theme: t })}>

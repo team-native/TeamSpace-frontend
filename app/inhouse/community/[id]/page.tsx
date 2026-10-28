@@ -107,7 +107,7 @@ export default function PostPage() {
               <span className="wd-badge blue">{post.category}</span>
             </div>
             <div style={{ position: "relative" }} ref={menuRef}>
-              <button type="button" className="wd-x" style={{ background: "#fff", border: "1px solid #e5e8eb", fontSize: 14 }} aria-label="더보기" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
+              <button type="button" className="wd-x" style={{ background: "transparent", border: "1px solid var(--wd-line)", fontSize: 14 }} aria-label="더보기" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
                 ⋯
               </button>
               {menuOpen && (
@@ -271,7 +271,7 @@ export default function PostPage() {
                 aria-checked={reason === x}
                 key={x}
                 className="wd-row wd-t11"
-                style={{ padding: "11px 12px", border: `1px solid ${reason === x ? "#3182f6" : "#e5e8eb"}`, borderRadius: 11, background: "#fff", textAlign: "left" }}
+                style={{ padding: "11px 12px", border: `1px solid ${reason === x ? "#3182f6" : "var(--wd-line)"}`, borderRadius: 11, background: "transparent", textAlign: "left" }}
                 onClick={() => setReason(x)}
               >
                 <span className={`wd-radio ${reason === x ? "on" : ""}`} />

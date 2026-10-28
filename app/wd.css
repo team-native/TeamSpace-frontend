@@ -139,6 +139,7 @@
 .wd-banner.dark p{color:#b0b8c1}
 .wd-banner.dark .ico{background:#ffffff1a;color:#fff}
 .wd-banner.gray{background:var(--wd-bg)}
+.wd-banner.warn{background:#fff8dc}.wd-banner.danger{background:#fff0f1}
 
 /* modal (정적 시안이라 화면 안에 고정) */
 .wd-scrim{position:absolute;inset:0;z-index:50;display:grid;place-items:center;background:#191f2861;backdrop-filter:blur(10px)}

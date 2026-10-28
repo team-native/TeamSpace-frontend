@@ -142,8 +142,8 @@ export default function TeamFinder() {
               <b style={{ display: "block", marginTop: 12, fontSize: 14 }}>{leader.name}</b>
               <span className="wd-t10 wd-faint">{leader.dept} · Founder</span>
             </button>
-            <div style={{ width: 2, height: 30, background: "#e5e8eb" }} />
-            <div className="wd-grid" style={{ gridTemplateColumns: "repeat(6,minmax(150px,1fr))", width: "100%", minWidth: 900, borderTop: "2px solid #e5e8eb", paddingTop: 22 }}>
+            <div style={{ width: 2, height: 30, background: "var(--wd-line)" }} />
+            <div className="wd-grid" style={{ gridTemplateColumns: "repeat(6,minmax(150px,1fr))", width: "100%", minWidth: 900, borderTop: "2px solid var(--wd-line)", paddingTop: 22 }}>
               {DEPARTMENTS.filter((d) => d !== "Leader").map((d) => {
                 const members = PEOPLE.filter((p) => p.dept === d);
                 const lead = members.find((p) => p.lead) ?? members[0];
