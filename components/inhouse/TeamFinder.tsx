@@ -5,8 +5,16 @@ import { DEPARTMENTS, PEOPLE, type Person } from "@/lib/demo";
 import { Av, Eyebrow, Modal, useToast } from "./ui";
 import EmptyState from "@/components/inhouse/EmptyState";
 
-// 팀원 찾기: 검색 · 부서 필터 · 새 멤버 배너 · 조직도 · 팀원 상세
+const TEAMS = ["전체", "Native", "NativeLab"] as const;
+type Team = (typeof TEAMS)[number];
+const teamOf = (p: Person): Team => (p.dept === "NativeLab" ? "NativeLab" : "Native");
+// 전체 인원 중 아직 프로필을 등록하지 않은 사람 수
+const TEAM_SIZE = 20;
+const unregistered = Math.max(TEAM_SIZE - PEOPLE.length, 0);
+
+// 팀원 찾기: 팀 탭 · 검색 · 부서 필터 · 새 멤버 배너 · 조직도 · 팀원 상세
 export default function TeamFinder() {
+  const [team, setTeam] = useState<Team>("전체");
   const [view, setView] = useState<"list" | "org">("list");
   const [dept, setDept] = useState<string>("전체");
   const [query, setQuery] = useState("");
@@ -19,10 +27,11 @@ export default function TeamFinder() {
     const q = query.trim().toLowerCase();
     return PEOPLE.filter(
       (p) =>
+        (team === "전체" || teamOf(p) === team) &&
         (dept === "전체" || p.dept === dept) &&
         (!q || `${p.name} ${p.dept} ${p.role}`.toLowerCase().includes(q)),
     );
-  }, [dept, query]);
+  }, [team, dept, query]);
   const leader = PEOPLE.find((p) => p.dept === "Leader")!;
 
   return (
@@ -33,6 +42,15 @@ export default function TeamFinder() {
             <Eyebrow>FIND PEOPLE</Eyebrow>
             <h2>함께 일하는 사람 찾기</h2>
           </div>
+          <div className="wd-row">
+          <div className="wd-tabs">
+            {TEAMS.map((t) => (
+              <button type="button" key={t} className={team === t ? "on" : ""} onClick={() => setTeam(t)}>
+                {t}
+                <small>{t === "전체" ? PEOPLE.length : PEOPLE.filter((p) => teamOf(p) === t).length}</small>
+              </button>
+            ))}
+          </div>
           <div className="wd-tabs">
             <button type="button" className={view === "list" ? "on" : ""} onClick={() => setView("list")}>
               목록
@@ -40,6 +58,7 @@ export default function TeamFinder() {
             <button type="button" className={view === "org" ? "on" : ""} onClick={() => setView("org")}>
               조직도
             </button>
+          </div>
           </div>
         </div>
 
@@ -100,6 +119,18 @@ export default function TeamFinder() {
                   setDept("전체");
                 }}
               />
+            )}
+            {unregistered > 0 && (
+              <div className="wd-banner gray" style={{ marginTop: 18 }}>
+                <span className="ico">+{unregistered}</span>
+                <div>
+                  <b>아직 프로필을 등록하지 않은 팀원이 {unregistered}명 있어요</b>
+                  <p>등록 요청을 보내면 프로필을 채워달라는 알림이 가요.</p>
+                </div>
+                <button type="button" className="wd-btn line sm" onClick={() => toast.show("등록 요청을 보냈어요")}>
+                  등록 요청 보내기
+                </button>
+              </div>
             )}
           </>
         ) : (
