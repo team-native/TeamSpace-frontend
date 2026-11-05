@@ -16,7 +16,7 @@ const NAV: [string, string, (keyof Counts)?][] = [
   ["대시보드", "/inhouse/admin"],
   ["공지 관리", "/inhouse/admin/notices/new"],
   ["일정 관리", "/inhouse/admin/events/new"],
-  ["문서 개정", "/inhouse/admin/documents/finance-pool"],
+  ["문서 개정", "/inhouse/admin/documents/new"],
   ["문의 답변", "/inhouse/admin/inquiries", "inquiries"],
   ["신고 처리", "/inhouse/admin/reports", "reports"],
   ["재정 권한", "/inhouse/admin/finance-roles"],

@@ -9,11 +9,13 @@ import EmptyState from "@/components/inhouse/EmptyState";
 import { Eyebrow, copyLink, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
 import { fetchDoc, fetchDocs, markDocRead, type DocDetail, type DocItem } from "@/lib/docs";
+import { isAdminRole, useMe } from "@/lib/session";
 
 export default function DocumentPage() {
   const { slug } = useParams<{ slug: string }>();
   const version = useSearchParams().get("version") ?? undefined;
   const toast = useToast();
+  const { me } = useMe();
   const [doc, setDoc] = useState<DocDetail | null>(null);
   const [related, setRelated] = useState<DocItem[]>([]);
   const [loadError, setLoadError] = useState<{ status: number; message: string } | null>(null);
@@ -156,7 +158,7 @@ export default function DocumentPage() {
   }
 
   const sections = doc.sections;
-  const hasRevision = doc.revised || sections.some((s) => s.revised || s.lines.some((l) => l.now));
+  const hasRevision = doc.revised || sections.some((s) => s.revised || s.lines.some((l) => l.now || l.was));
 
   return (
     <WdPage active="documents">
@@ -193,6 +195,11 @@ export default function DocumentPage() {
             <Link className="wd-btn line sm" href={`/inhouse/documents/${doc.slug}/history`}>
               변경 내역
             </Link>
+            {isAdminRole(me) && !version && (
+              <Link className="wd-btn line sm" href={`/inhouse/admin/documents/${doc.slug}`}>
+                개정
+              </Link>
+            )}
             <button type="button" className="wd-btn line sm" onClick={share}>
               링크 복사
             </button>
@@ -227,10 +234,12 @@ export default function DocumentPage() {
                 {s.lines.map((l, j) => (
                   <p key={j}>
                     {l.text}
-                    {l.now &&
+                    {(l.now || l.was) &&
                       (highlight ? (
                         <>
-                          {l.was && <del>{l.was}</del>} <mark>{l.now}</mark>
+                          {l.was && <del>{l.was}</del>}
+                          {l.was && l.now && " "}
+                          {l.now && <mark>{l.now}</mark>}
                         </>
                       ) : (
                         l.now
