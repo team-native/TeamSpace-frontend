@@ -2,97 +2,170 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Fragment, useEffect, useState } from "react";
-import CommunityShell, { board } from "@/components/inhouse/CommunityShell";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import CommunityShell from "@/components/inhouse/CommunityShell";
 import { Av, Confirm, Modal, copyLink, useOutside, useToast } from "@/components/inhouse/ui";
-import { ME, REPORT_REASONS, type Comment, type Post } from "@/lib/demo";
+import { ApiError } from "@/lib/api";
+import {
+  REPORT_REASONS,
+  addComment,
+  deletePost,
+  fetchPost,
+  fetchPosts,
+  likeComment,
+  likePost,
+  reportPost,
+  type Comment,
+  type Post,
+  type PostDetail,
+} from "@/lib/board";
+import { loadLocal, saveLocal } from "@/lib/demo";
 import EmptyState from "@/components/inhouse/EmptyState";
+
+// 서버가 게시글 공감 여부를 주지 않아서, 이 기기에서 누른 기록으로 처음 상태만 맞춘다
+const LIKED_KEY = "native-inhouse-liked-posts";
+
+const errMsg = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 
 export default function PostPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
-  const [post, setPost] = useState<Post | null | undefined>(undefined);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [post, setPost] = useState<PostDetail | null | undefined>(undefined);
+  const [loadError, setLoadError] = useState("");
+  const [related, setRelated] = useState<Post[]>([]);
   const [liked, setLiked] = useState(false);
   const [text, setText] = useState("");
   const [anon, setAnon] = useState(false);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const [sending, setSending] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [reason, setReason] = useState(REPORT_REASONS[0]);
+  const [reason, setReason] = useState<string>(REPORT_REASONS[0]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const menuRef = useOutside<HTMLDivElement>(menuOpen, () => setMenuOpen(false));
 
-  useEffect(() => {
-    setPost(board.posts().find((p) => p.id === id) ?? null);
-    setComments(board.comments(id));
-    setLiked(board.liked().includes(id));
+  const load = useCallback(async () => {
+    setLoadError("");
+    try {
+      const p = await fetchPost(id);
+      setPost(p);
+      setLiked(loadLocal<string[]>(LIKED_KEY, []).includes(p.id));
+      fetchPosts({ category: p.category, sort: "최신순", limit: 4 })
+        .then((page) => setRelated(page.items.filter((x) => x.id !== p.id).slice(0, 3)))
+        .catch(() => setRelated([]));
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) setPost(null);
+      else setLoadError(errMsg(e, "게시글을 불러오지 못했어요."));
+    }
   }, [id]);
 
-  if (post === undefined) return <CommunityShell>{null}</CommunityShell>;
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (loadError)
+    return (
+      <CommunityShell>
+        <EmptyState icon="!" title="게시글을 불러오지 못했어요" description={loadError} actionLabel="다시 시도" onAction={() => void load()} />
+      </CommunityShell>
+    );
+  if (post === undefined)
+    return (
+      <CommunityShell>
+        <div className="wd-muted wd-t11" aria-busy="true" style={{ padding: 48, textAlign: "center" }}>
+          게시글을 불러오는 중…
+        </div>
+      </CommunityShell>
+    );
   if (post === null)
-  return (
-    <CommunityShell>
-      <EmptyState
-        icon={
-                <span style={{ display: "inline-block", transform: "translateY(5px)" }}>
-                  ?
-                </span>
-              }
-        title="페이지를 찾을 수 없어요"
-        description="삭제됐거나 주소가 바뀌었어요."
-        actionLabel="홈으로"
-        onAction={() => router.push("/inhouse/community")}
-      />
-    </CommunityShell>
-  );
+    return (
+      <CommunityShell>
+        <EmptyState
+          icon={<span style={{ display: "inline-block", transform: "translateY(5px)" }}>?</span>}
+          title="게시글을 찾을 수 없어요"
+          description="삭제됐거나 숨김 처리된 글이에요."
+          actionLabel="목록으로"
+          onAction={() => router.push("/inhouse/community")}
+        />
+      </CommunityShell>
+    );
 
-  // 익명 댓글 작성자에게 처음 등장한 순서대로 번호를 매김
+  const comments = post.comments;
+  // 익명 댓글은 서버가 작성자를 알려주지 않아서 등장 순서대로 번호만 붙인다 (내 익명 댓글은 같은 번호)
   const anonNumbers = new Map<string, number>();
-  comments.filter((c) => c.anonymous).forEach((c) => {
-    const key = c.author === ME.name ? ME.name : c.id;
-    if (!anonNumbers.has(key)) anonNumbers.set(key, anonNumbers.size + 1);
-  });
-  const isAuthor = (c: Comment) => !post.anonymous && !c.anonymous && c.author === post.author;
-  const displayName = (c: Comment) => (c.anonymous ? `익명 ${anonNumbers.get(c.author === ME.name ? ME.name : c.id)}` : c.author);
-  const likes = post.likes + (liked ? 1 : 0);
-  const roots = comments.filter((c) => !c.replyTo);
+  comments
+    .filter((c) => c.anonymous && c.author === "익명")
+    .forEach((c) => {
+      const key = c.mine ? "me" : c.id;
+      if (!anonNumbers.has(key)) anonNumbers.set(key, anonNumbers.size + 1);
+    });
+  const anonLabel = (c: Comment) => anonNumbers.get(c.mine ? "me" : c.id);
+  const isAuthor = (c: Comment) => c.author === "글쓴이" || (!post.anonymous && !c.anonymous && c.author === post.author);
+  const displayName = (c: Comment) => (c.anonymous && c.author === "익명" ? `익명 ${anonLabel(c)}` : c.author);
+  const roots = comments.filter((c) => !c.replyTo || !comments.some((x) => x.id === c.replyTo));
 
-  const submit = () => {
-    if (!text.trim()) return;
-    const c: Comment = {
-      id: `c-${Date.now()}`,
-      postId: id,
-      author: ME.name,
-      anonymous: post.anonComments && anon,
-      text: text.trim(),
-      when: "방금",
-      likes: 0,
-      replyTo: replyTo?.id,
-    };
-    board.addComment(c);
-    setComments([...comments, c]);
-    setText("");
-    setReplyTo(null);
+  const setComments = (next: Comment[]) => setPost((p) => (p ? { ...p, comments: next, commentCount: next.length } : p));
+
+  const submit = async () => {
+    if (!text.trim() || sending) return;
+    setSending(true);
+    try {
+      const c = await addComment(post.id, { text: text.trim(), anonymous: post.anonComments && anon, replyTo: replyTo?.id });
+      setComments([...comments, { ...c, mine: true }]);
+      setText("");
+      setReplyTo(null);
+    } catch (e) {
+      toast.show(errMsg(e, "댓글을 등록하지 못했어요."));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const toggleLike = async () => {
+    try {
+      const r = await likePost(post.id);
+      setLiked(r.liked);
+      setPost((p) => (p ? { ...p, likes: r.likes } : p));
+      const ids = loadLocal<string[]>(LIKED_KEY, []).filter((x) => x !== post.id);
+      saveLocal(LIKED_KEY, r.liked ? [...ids, post.id].slice(-500) : ids);
+    } catch (e) {
+      toast.show(errMsg(e, "공감하지 못했어요."));
+    }
+  };
+
+  const toggleCommentLike = async (c: Comment) => {
+    try {
+      const r = await likeComment(post.id, c.id);
+      setComments(comments.map((x) => (x.id === c.id ? { ...x, liked: r.liked, likes: r.likes } : x)));
+    } catch (e) {
+      toast.show(errMsg(e, "공감하지 못했어요."));
+    }
   };
 
   const CommentRow = ({ c, reply = false }: { c: Comment; reply?: boolean }) => (
     <div className={`wd-comment ${reply ? "reply" : ""}`}>
-      {c.anonymous ? <span className="wd-av">{anonNumbers.get(c.author === ME.name ? ME.name : c.id)}</span> : <Av name={c.author} id={c.author === ME.name ? ME.id : undefined} />}
+      {c.anonymous && c.author === "익명" ? <span className="wd-av">{anonLabel(c)}</span> : <Av name={c.author} />}
       <div>
         <header>
           {displayName(c)} {isAuthor(c) && <span className="wd-badge blue" style={{ height: 17 }}>글쓴이</span>} <small>{c.when}</small>
         </header>
         <p>{c.text}</p>
-        {!reply && (
-          <div className="wd-foot">
-            <span>공감 {c.likes}</span>
+        <div className="wd-foot">
+          <button
+            type="button"
+            aria-pressed={c.liked}
+            style={{ border: 0, background: "none", padding: 0, color: c.liked ? "#3182f6" : "inherit", fontSize: 9 }}
+            onClick={() => void toggleCommentLike(c)}
+          >
+            {c.liked ? "♥" : "♡"} 공감 {c.likes}
+          </button>
+          {!reply && (
             <button type="button" style={{ border: 0, background: "none", padding: 0, color: "inherit", fontSize: 9 }} onClick={() => setReplyTo(c)}>
               답글
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -152,15 +225,15 @@ export default function PostPage() {
           </div>
           <h1 style={{ margin: "14px 0 10px", fontSize: 26, letterSpacing: "-.05em", fontWeight: 620 }}>{post.title}</h1>
           <div className="wd-row wd-t10 wd-faint" style={{ gap: 10, marginBottom: 24 }}>
-            {post.anonymous ? <span className="wd-av sm">?</span> : <Av name={post.author} size="sm" id={post.mine ? ME.id : undefined} />}
-            <b style={{ color: "#191f28" }}>{post.anonymous ? "익명" : post.author}</b> · {post.when} · 조회 {post.views + 1}
+            {post.anonymous ? <span className="wd-av sm">?</span> : <Av name={post.author} size="sm" />}
+            <b style={{ color: "#191f28" }}>{post.author}</b> · {post.when} · 조회 {post.views}
           </div>
           <div className="wd-doc" style={{ marginBottom: 26, whiteSpace: "pre-line" }}>
             <p>{post.body}</p>
           </div>
           <div className="wd-row" style={{ gap: 8, paddingBottom: 20, borderBottom: "1px solid #e5e8eb" }}>
-            <button type="button" aria-pressed={liked} className={`wd-chip ${liked ? "bon" : ""}`} onClick={() => setLiked(board.toggleLike(id).includes(id))}>
-              {liked ? "♥" : "♡"} 공감 {likes}
+            <button type="button" aria-pressed={liked} className={`wd-chip ${liked ? "bon" : ""}`} onClick={() => void toggleLike()}>
+              {liked ? "♥" : "♡"} 공감 {post.likes}
             </button>
             <button
               type="button"
@@ -200,7 +273,7 @@ export default function PostPage() {
             style={{ marginTop: 12, flexWrap: "wrap" }}
             onSubmit={(e) => {
               e.preventDefault();
-              submit();
+              void submit();
             }}
           >
             {post.anonComments && (
@@ -214,23 +287,20 @@ export default function PostPage() {
               </div>
             )}
             <input className="wd-input" style={{ flex: 1, minWidth: 200 }} value={text} onChange={(e) => setText(e.target.value)} placeholder="댓글을 남겨주세요" />
-            <button type="submit" className="wd-btn" disabled={!text.trim()}>
-              등록
+            <button type="submit" className="wd-btn" disabled={!text.trim() || sending}>
+              {sending ? "등록 중…" : "등록"}
             </button>
           </form>
         </article>
         <aside className="wd-card soft">
           <h3 style={{ fontSize: 12 }}>이 카테고리의 다른 글</h3>
-          {board
-            .posts()
-            .filter((p) => p.category === post.category && p.id !== post.id)
-            .slice(0, 3)
-            .map((p) => (
-              <Link key={p.id} href={`/inhouse/community/${p.id}`} className="wd-between wd-t10" style={{ padding: "10px 0" }}>
-                {p.title}
-                <span className="wd-faint">→</span>
-              </Link>
-            ))}
+          {related.length === 0 && <p className="wd-t10 wd-faint" style={{ margin: "10px 0" }}>다른 글이 없어요</p>}
+          {related.map((p) => (
+            <Link key={p.id} href={`/inhouse/community/${p.id}`} className="wd-between wd-t10" style={{ padding: "10px 0" }}>
+              {p.title}
+              <span className="wd-faint">→</span>
+            </Link>
+          ))}
           <Link href="/inhouse/community" className="wd-btn ghost sm full" style={{ marginTop: 10 }}>
             목록으로
           </Link>
@@ -253,9 +323,14 @@ export default function PostPage() {
                 type="button"
                 className="wd-btn"
                 style={{ background: "#f04452" }}
-                onClick={() => {
-                  setReportOpen(false);
-                  toast.show("신고했어요. 운영진이 확인할게요.");
+                onClick={async () => {
+                  try {
+                    await reportPost(post.id, reason);
+                    setReportOpen(false);
+                    toast.show("신고했어요. 운영진이 확인할게요.");
+                  } catch (e) {
+                    toast.show(errMsg(e, "신고하지 못했어요."));
+                  }
                 }}
               >
                 신고하기
@@ -284,13 +359,18 @@ export default function PostPage() {
       {deleteOpen && (
         <Confirm
           title="게시글을 삭제할까요?"
-          message={`댓글 ${comments.length}개도 함께 지워지고 되돌릴 수 없어요.`}
+          message={`댓글 ${comments.length}개도 함께 보이지 않고 되돌릴 수 없어요.`}
           confirmLabel="삭제"
           danger
           onClose={() => setDeleteOpen(false)}
-          onConfirm={() => {
-            board.deletePost(post.id);
-            router.replace("/inhouse/community");
+          onConfirm={async () => {
+            try {
+              await deletePost(post.id);
+              router.replace("/inhouse/community");
+            } catch (e) {
+              setDeleteOpen(false);
+              toast.show(errMsg(e, "삭제하지 못했어요."));
+            }
           }}
         />
       )}

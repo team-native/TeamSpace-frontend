@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { COMMENTS, POSTS, loadLocal, saveLocal, type Comment, type Post } from "@/lib/demo";
 import WdPage from "./WdPage";
 
 const TABS: [string, string][] = [
@@ -34,32 +33,3 @@ export default function CommunityShell({ children }: { children: ReactNode }) {
     </WdPage>
   );
 }
-
-// 게시판 데모 저장소: 새 글·댓글·공감·삭제를 브라우저에 보관
-const POSTS_KEY = "native-inhouse-posts";
-const COMMENTS_KEY = "native-inhouse-comments";
-const LIKES_KEY = "native-inhouse-likes";
-const DELETED_KEY = "native-inhouse-deleted-posts";
-
-export const board = {
-  posts: (): Post[] => {
-    const deleted = loadLocal<string[]>(DELETED_KEY, []);
-    return [...loadLocal<Post[]>(POSTS_KEY, []), ...POSTS].filter((p) => !deleted.includes(p.id));
-  },
-  addPost: (p: Post) => saveLocal(POSTS_KEY, [p, ...loadLocal<Post[]>(POSTS_KEY, [])]),
-  updatePost: (p: Post) => {
-    const local = loadLocal<Post[]>(POSTS_KEY, []);
-    saveLocal(POSTS_KEY, local.some((x) => x.id === p.id) ? local.map((x) => (x.id === p.id ? p : x)) : [p, ...local]);
-  },
-  deletePost: (id: string) => saveLocal(DELETED_KEY, [...loadLocal<string[]>(DELETED_KEY, []), id]),
-  comments: (postId: string): Comment[] =>
-    [...COMMENTS, ...loadLocal<Comment[]>(COMMENTS_KEY, [])].filter((c) => c.postId === postId),
-  addComment: (c: Comment) => saveLocal(COMMENTS_KEY, [...loadLocal<Comment[]>(COMMENTS_KEY, []), c]),
-  liked: (): string[] => loadLocal<string[]>(LIKES_KEY, []),
-  toggleLike: (id: string) => {
-    const likes = loadLocal<string[]>(LIKES_KEY, []);
-    const next = likes.includes(id) ? likes.filter((x) => x !== id) : [...likes, id];
-    saveLocal(LIKES_KEY, next);
-    return next;
-  },
-};
