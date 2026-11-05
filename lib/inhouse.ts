@@ -1,5 +1,3 @@
-import preview from "./preview.json";
-
 export type PoolId = "operation" | "reserve" | "dividend";
 
 export type Pool = {
@@ -35,11 +33,6 @@ export type InhouseData = {
   notices: { category: string; title: string; meta: string }[];
   member: { email: string; name: string };
 };
-
-// 원본은 /api/inhouse 응답을 쓰지만, 지금은 미리보기(데모) 데이터로 고정
-export function useInhouseData(): { data: InhouseData | null; error: string } {
-  return { data: preview as InhouseData, error: "" };
-}
 
 export const won = new Intl.NumberFormat("ko-KR");
 
