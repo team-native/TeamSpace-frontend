@@ -130,3 +130,47 @@ export const markDocRead = (slug: string) =>
   api<{ read: boolean; readAt: string; confirmed: number }>(`/docs/${encodeURIComponent(slug)}/read`, { method: "POST" });
 
 export const TYPE_LABEL: Record<string, string> = { RULE: "규칙", FINANCE: "재무", TEMPLATE: "템플릿", GUIDE: "가이드" };
+
+// ---- 관리자: 등록 · 개정 (POST /admin/docs, Admin만) ----
+
+export type DocInput = {
+  slug: string;
+  title: string;
+  category: string;
+  type: string;
+  copy: string;
+  sections: DocSection[];
+  note: string;
+  effective: string;
+  notify: boolean;
+  version?: string;
+};
+
+export const saveDoc = (input: DocInput) =>
+  api<{ slug: string; version?: string }>("/admin/docs", { method: "POST", body: input });
+
+// 줄 단위로 앞뒤 같은 부분을 빼고 바뀐 가운데만 was → now 로 표시한다
+export function diffLines(before: string, after: string): { lines: DocLine[]; changed: boolean } {
+  const a = before.split("\n");
+  const b = after.split("\n").filter((l, i, all) => l.trim() || i < all.length - 1);
+  let changed = false;
+  const lines = b.map((now, i): DocLine => {
+    const was = a[i];
+    if (was === undefined) {
+      changed = true;
+      return { text: "", was: "", now };
+    }
+    if (was === now) return { text: now };
+    changed = true;
+    let p = 0;
+    while (p < was.length && p < now.length && was[p] === now[p]) p++;
+    let s = 0;
+    while (s < was.length - p && s < now.length - p && was[was.length - 1 - s] === now[now.length - 1 - s]) s++;
+    return { text: now.slice(0, p), was: was.slice(p, was.length - s), now: now.slice(p, now.length - s), after: now.slice(now.length - s) };
+  });
+  if (a.length > b.length) changed = true;
+  return { lines, changed };
+}
+
+// 화면에 보이는 현재 본문 (개정 표시가 있으면 바뀐 뒤 글자로)
+export const sectionText = (s: DocSection) => s.lines.map((l) => (l.now !== undefined ? `${l.text}${l.now}${l.after ?? ""}` : l.text)).join("\n");

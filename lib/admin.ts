@@ -32,5 +32,3 @@ export const POOL_SPLIT: [string, number, Tone][] = [
   ["배당풀", 0.15, "orange"],
 ];
 
-// 전체 인원(프로필 미등록 포함). 필독 확인 현황의 분모와 같음
-export const TEAM_SIZE = 20;
