@@ -1,19 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DEPARTMENTS, PEOPLE, type Person } from "@/lib/demo";
+import { departmentsOf, founderOf, personLine, type Person } from "@/lib/people";
 import { Av, Eyebrow, Modal, useToast } from "./ui";
 import EmptyState from "@/components/inhouse/EmptyState";
 
 const TEAMS = ["전체", "Native", "NativeLab"] as const;
 type Team = (typeof TEAMS)[number];
 const teamOf = (p: Person): Team => (p.dept === "NativeLab" ? "NativeLab" : "Native");
-// 전체 인원 중 아직 프로필을 등록하지 않은 사람 수
-const TEAM_SIZE = 20;
-const unregistered = Math.max(TEAM_SIZE - PEOPLE.length, 0);
-
-// 팀원 찾기: 팀 탭 · 검색 · 부서 필터 · 새 멤버 배너 · 조직도 · 팀원 상세
-export default function TeamFinder() {
+// 팀원 찾기: 팀 탭 · 검색 · 부서 필터 · 새 멤버 배너 · 조직도 · 팀원 상세 (GET /people)
+export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
   const [team, setTeam] = useState<Team>("전체");
   const [view, setView] = useState<"list" | "org">("list");
   const [dept, setDept] = useState<string>("전체");
@@ -22,6 +18,9 @@ export default function TeamFinder() {
   const [selected, setSelected] = useState<Person | null>(null);
   const toast = useToast();
 
+  const DEPARTMENTS = departmentsOf(PEOPLE);
+  // 소개 · 전공을 아직 안 채운 사람
+  const unregistered = PEOPLE.filter((p) => !p.bio && !p.role).length;
   const newbies = PEOPLE.filter((p) => p.isNew);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -29,10 +28,10 @@ export default function TeamFinder() {
       (p) =>
         (team === "전체" || teamOf(p) === team) &&
         (dept === "전체" || p.dept === dept) &&
-        (!q || `${p.name} ${p.dept} ${p.role}`.toLowerCase().includes(q)),
+        (!q || `${p.name} ${p.dept} ${p.role} ${p.email}`.toLowerCase().includes(q)),
     );
-  }, [team, dept, query]);
-  const leader = PEOPLE.find((p) => p.dept === "Leader")!;
+  }, [PEOPLE, team, dept, query]);
+  const leader = founderOf(PEOPLE);
 
   return (
     <section className="wd-scope np-team-finder">
@@ -67,7 +66,7 @@ export default function TeamFinder() {
             <span className="ico">+{newbies.length}</span>
             <div>
               <b>이번 주 새 멤버가 합류했어요</b>
-              <p>{newbies.map((p) => `${p.name} (${p.dept} · ${p.role})`).join(", ")} — 반갑게 맞아주세요.</p>
+              <p>{newbies.map((p) => `${p.name} (${personLine(p)})`).join(", ")} — 반갑게 맞아주세요.</p>
             </div>
             <div className="wd-avs" style={{ marginLeft: "auto" }}>
               {newbies.map((p) => (
@@ -103,7 +102,7 @@ export default function TeamFinder() {
                   </div>
                   <b style={{ display: "block", marginTop: 16, fontSize: 14 }}>{p.name}</b>
                   <span className="wd-t10 wd-faint" style={{ display: "block", marginTop: 4 }}>
-                    {p.dept} · {p.role}
+                    {personLine(p)}
                   </span>
                 </button>
               ))}
@@ -124,17 +123,16 @@ export default function TeamFinder() {
               <div className="wd-banner gray" style={{ marginTop: 18 }}>
                 <span className="ico">+{unregistered}</span>
                 <div>
-                  <b>아직 프로필을 등록하지 않은 팀원이 {unregistered}명 있어요</b>
-                  <p>등록 요청을 보내면 프로필을 채워달라는 알림이 가요.</p>
+                  <b>아직 프로필을 채우지 않은 팀원이 {unregistered}명 있어요</b>
+                  <p>내 프로필은 프로필 수정에서 전공 · 한 줄 소개를 채울 수 있어요.</p>
                 </div>
-                <button type="button" className="wd-btn line sm" onClick={() => toast.show("등록 요청을 보냈어요")}>
-                  등록 요청 보내기
-                </button>
               </div>
             )}
           </>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", overflowX: "auto" }}>
+            {leader && (
+            <>
             <button type="button" className="wd-card" style={{ width: 240, textAlign: "center", borderColor: "#cdd9f5", background: "linear-gradient(110deg,#fff,#f7f9ff)" }} onClick={() => setSelected(leader)}>
               <span style={{ display: "flex", justifyContent: "center" }}>
                 <Av name={leader.name} tone="dark" size="lg" />
@@ -143,7 +141,9 @@ export default function TeamFinder() {
               <span className="wd-t10 wd-faint">{leader.dept} · Founder</span>
             </button>
             <div style={{ width: 2, height: 30, background: "var(--wd-line)" }} />
-            <div className="wd-grid" style={{ gridTemplateColumns: "repeat(6,minmax(150px,1fr))", width: "100%", minWidth: 900, borderTop: "2px solid var(--wd-line)", paddingTop: 22 }}>
+            </>
+            )}
+            <div className="wd-grid" style={{ gridTemplateColumns: `repeat(${Math.max(DEPARTMENTS.filter((d) => d !== "Leader").length, 1)},minmax(150px,1fr))`, width: "100%", minWidth: 900, borderTop: "2px solid var(--wd-line)", paddingTop: 22 }}>
               {DEPARTMENTS.filter((d) => d !== "Leader").map((d) => {
                 const members = PEOPLE.filter((p) => p.dept === d);
                 const lead = members.find((p) => p.lead) ?? members[0];
@@ -174,7 +174,7 @@ export default function TeamFinder() {
                         {members.map((m) => (
                           <button type="button" key={m.id} className="wd-row wd-t10" style={{ padding: "6px 0", gap: 8, border: 0, background: "none", width: "100%" }} onClick={() => setSelected(m)}>
                             <Av name={m.name} tone={m.tone} size="sm" />
-                            {m.name} · {m.role}
+                            {m.name}{m.role ? ` · ${m.role}` : ""}
                           </button>
                         ))}
                       </div>
@@ -191,7 +191,7 @@ export default function TeamFinder() {
         <Modal
           eyebrow="MEMBER"
           title={selected.name}
-          sub={`${selected.dept} · ${selected.role}`}
+          sub={personLine(selected)}
           onClose={() => setSelected(null)}
           footer={
             <>
@@ -212,7 +212,12 @@ export default function TeamFinder() {
           }
         >
           <div className="wd-row" style={{ gap: 16, marginBottom: 22 }}>
-            <Av name={selected.name} tone={selected.tone} size="xl" />
+            {selected.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={selected.photo} alt="" width={64} height={64} style={{ borderRadius: "50%", objectFit: "cover", flex: "none" }} />
+            ) : (
+              <Av name={selected.name} tone={selected.tone} size="xl" />
+            )}
             <div>
               <p className="wd-t12" style={{ margin: 0, lineHeight: 1.7 }}>
                 {selected.bio ? `“${selected.bio}”` : "아직 한 줄 소개가 없어요."}
@@ -228,9 +233,10 @@ export default function TeamFinder() {
           </div>
           <dl className="wd-kv" style={{ marginBottom: 22 }}>
             <div><dt>이메일</dt><dd>{selected.email}</dd></div>
-            <div><dt>GitHub</dt><dd>{selected.github}</dd></div>
-            <div><dt>합류일</dt><dd>{selected.joined}</dd></div>
-            <div><dt>부서</dt><dd>{selected.dept}</dd></div>
+            <div><dt>GitHub</dt><dd>{selected.github || "미등록"}</dd></div>
+            <div><dt>합류일</dt><dd>{selected.joined || "-"}</dd></div>
+            <div><dt>부서</dt><dd>{selected.dept || "미등록"}</dd></div>
+            {selected.cohort && <div><dt>기수</dt><dd>{selected.cohort}</dd></div>}
           </dl>
           {selected.projects.length > 0 && (
             <>
