@@ -1,18 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import EmptyState from "@/components/inhouse/EmptyState";
 import PortalShell from "@/components/inhouse/PortalShell";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
 import { useInhouseData } from "@/lib/inhouse";
 import { useOutside } from "@/components/inhouse/ui";
-import { DOCS, loadLocal, saveLocal } from "@/lib/demo";
+import { loadLocal, saveLocal } from "@/lib/demo";
+import { fetchDocs, type DocItem } from "@/lib/docs";
 
-const DOCUMENTS = DOCS;
 const RECENT_KEY = "native-inhouse-recent-searches";
-
-const CATEGORIES = ["전체", "운영 규칙", "재무", "템플릿", "NativeLab", "팀 규칙"];
 
 export default function DocumentsPage() {
   const { data, error } = useInhouseData();
@@ -20,16 +18,33 @@ export default function DocumentsPage() {
   const [category, setCategory] = useState("전체");
   const [focused, setFocused] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
-  const [revisedRead, setRevisedRead] = useState(true);
+  const [docs, setDocs] = useState<DocItem[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const req = useRef(0);
   const searchRef = useOutside<HTMLDivElement>(focused, () => setFocused(false));
-  const revised = DOCUMENTS.find((d) => d.revised);
+  const DOCUMENTS = useMemo(() => docs ?? [], [docs]);
+  // 개정됐는데 아직 안 읽은 문서 하나를 위에 알린다
+  const revised = DOCUMENTS.find((d) => d.revised && !d.read);
+  const categories = useMemo(
+    () => ["전체", ...Array.from(new Set(DOCUMENTS.map((d) => d.category)))],
+    [DOCUMENTS],
+  );
+
+  const load = useCallback(async () => {
+    const id = ++req.current;
+    setLoadError("");
+    try {
+      const list = await fetchDocs();
+      if (id === req.current) setDocs(list);
+    } catch (e) {
+      if (id === req.current) setLoadError((e instanceof Error ? e.message : "문서를 불러오지 못했어요."));
+    }
+  }, []);
 
   useEffect(() => {
     setRecent(loadLocal<string[]>(RECENT_KEY, []));
-    setRevisedRead(
-      loadLocal<string[]>("native-inhouse-read-docs", []).includes(revised?.slug ?? ""),
-    );
-  }, [revised]);
+    load();
+  }, [load]);
 
   const remember = (q: string) => {
     const term = q.trim();
@@ -47,13 +62,13 @@ export default function DocumentsPage() {
           (category === "전체" || doc.category === category) &&
           `${doc.title} ${doc.copy}`.includes(query.trim()),
       ),
-    [category, query],
+    [DOCUMENTS, category, query],
   );
 
   useRevealOnScroll(
     ".pf-doc-reveal",
     { threshold: 0.12, rootMargin: "0px 0px -34px" },
-    [data, category, query],
+    [data, docs, category, query],
   );
 
   return (
@@ -156,7 +171,7 @@ export default function DocumentsPage() {
                   </div>
 
                   <b className="wd-t10">자주 찾는 문서</b>
-                  {DOCUMENTS.slice(1, 3).map((d) => (
+                  {DOCUMENTS.filter((d) => d.type !== "TEMPLATE").slice(0, 2).map((d) => (
                     <Link
                       key={d.slug}
                       href={`/inhouse/documents/${d.slug}`}
@@ -171,7 +186,7 @@ export default function DocumentsPage() {
             </div>
           </section>
 
-          {revised && !revisedRead && (
+          {revised && (
             <div className="wd-scope wd-wrap" style={{ marginBottom: 40 }}>
               <div className="wd-banner warn">
                 <span className="ico" style={{ color: "#9a6b00" }}>
@@ -179,9 +194,10 @@ export default function DocumentsPage() {
                 </span>
                 <div>
                   <b>
-                    &lsquo;{revised.title}&rsquo;이 개정됐어요 · {revised.effective} 시행
+                    &lsquo;{revised.title}&rsquo;이 개정됐어요
+                    {revised.effective ? ` · ${revised.effective} 시행` : ""}
                   </b>
-                  <p>적립풀 비율 30% → 25%, 배당 정산 주기 분기 → 월. 아직 읽지 않았어요.</p>
+                  <p>{revised.copy ? `${revised.copy} · ` : ""}아직 읽지 않았어요.</p>
                 </div>
                 <Link className="wd-btn sm" href={`/inhouse/documents/${revised.slug}`}>
                   바뀐 부분 보기
@@ -192,7 +208,7 @@ export default function DocumentsPage() {
 
           <section className="pf-doc-body pf-doc-reveal">
             <aside>
-              {CATEGORIES.map((name) => (
+              {categories.map((name) => (
                 <button
                   key={name}
                   onClick={() => setCategory(name)}
@@ -229,7 +245,7 @@ export default function DocumentsPage() {
                     <div>
                       <b>
                         {doc.title}
-                        {doc.revised && !revisedRead && (
+                        {doc.revised && !doc.read && (
                           <span className="wd-scope" style={{ marginLeft: 6 }}>
                             <span className="wd-badge orange">개정</span>
                           </span>
@@ -243,12 +259,32 @@ export default function DocumentsPage() {
                 </Link>
               ))}
 
-              {filtered.length === 0 && (
+              {!docs && !loadError && (
+                <p className="wd-scope wd-t11 wd-faint" aria-busy="true" style={{ padding: "24px 0" }}>
+                  문서를 불러오는 중이에요…
+                </p>
+              )}
+
+              {loadError && (
+                <div className="wd-scope" style={{ padding: "16px 0" }}>
+                  <div className="wd-banner danger">
+                    <span className="ico">!</span>
+                    <div>
+                      <b>{loadError}</b>
+                    </div>
+                    <button type="button" className="wd-btn sm" onClick={load}>
+                      다시 시도
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {docs && filtered.length === 0 && (
                 <div className="wd-scope">
                   <EmptyState
                     icon="⌕"
-                    title="검색 결과가 없어요"
-                    description="다른 단어로 찾아보거나 분류를 바꿔보세요."
+                    title={DOCUMENTS.length ? "검색 결과가 없어요" : "아직 등록된 문서가 없어요"}
+                    description={DOCUMENTS.length ? "다른 단어로 찾아보거나 분류를 바꿔보세요." : "관리자가 규칙이나 양식을 올리면 여기에 보여요."}
                     actionLabel="필터 초기화"
                     onAction={() => {
                       setQuery("");

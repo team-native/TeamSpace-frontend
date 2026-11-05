@@ -1,35 +1,104 @@
 "use client";
 
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import WdPage from "@/components/inhouse/WdPage";
+import Attachments from "@/components/inhouse/Attachments";
+import EmptyState from "@/components/inhouse/EmptyState";
 import { Eyebrow, copyLink, useToast } from "@/components/inhouse/ui";
-import { DOCS, DOC_HISTORY, TEMPLATE_FIELDS, loadLocal, saveLocal } from "@/lib/demo";
-
-const READ_KEY = "native-inhouse-read-docs";
-const TEAM_SIZE = 20;
+import { ApiError } from "@/lib/api";
+import { fetchDoc, fetchDocs, markDocRead, type DocDetail, type DocItem } from "@/lib/docs";
 
 export default function DocumentPage() {
   const { slug } = useParams<{ slug: string }>();
-  const doc = DOCS.find((d) => d.slug === slug);
+  const version = useSearchParams().get("version") ?? undefined;
   const toast = useToast();
+  const [doc, setDoc] = useState<DocDetail | null>(null);
+  const [related, setRelated] = useState<DocItem[]>([]);
+  const [loadError, setLoadError] = useState<{ status: number; message: string } | null>(null);
   const [highlight, setHighlight] = useState(true);
-  const [read, setRead] = useState(false);
   const [section, setSection] = useState(0);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmed, setConfirmed] = useState<number | null>(null);
+  const req = useRef(0);
+
+  const load = useCallback(async () => {
+    const id = ++req.current;
+    setLoadError(null);
+    try {
+      const d = await fetchDoc(slug, version);
+      if (id !== req.current) return;
+      setDoc(d);
+      // 관련 문서는 목록에서 같은 분류를 골라 보여준다 (못 불러와도 본문은 보여줌)
+      fetchDocs(100)
+        .then((list) => {
+          if (id !== req.current) return;
+          const others = list.filter((x) => x.slug !== d.slug && x.type !== "TEMPLATE");
+          setRelated([...others.filter((x) => x.category === d.category), ...others.filter((x) => x.category !== d.category)].slice(0, 2));
+        })
+        .catch(() => {});
+    } catch (e) {
+      if (id !== req.current) return;
+      setLoadError({ status: e instanceof ApiError ? e.status : 0, message: (e instanceof Error ? e.message : "문서를 불러오지 못했어요.") });
+    }
+  }, [slug, version]);
 
   useEffect(() => {
-    setRead(loadLocal<string[]>(READ_KEY, []).includes(slug));
-  }, [slug]);
+    load();
+  }, [load]);
 
-  if (!doc) return notFound();
   const share = async () => {
     await copyLink();
     toast.show("링크를 복사했어요");
   };
 
+  const confirm = async () => {
+    if (!doc || confirming) return;
+    setConfirming(true);
+    try {
+      const r = await markDocRead(doc.slug);
+      setDoc({ ...doc, read: true, readAt: r.readAt });
+      setConfirmed(r.confirmed);
+      toast.show("확인했어요. 고마워요!");
+    } catch (e) {
+      toast.show((e instanceof Error ? e.message : "확인을 저장하지 못했어요."));
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  if (loadError) {
+    const missing = loadError.status === 404;
+    const denied = loadError.status === 403;
+    return (
+      <WdPage active="documents">
+        <div className="wd-wrap wd-pb">
+          <EmptyState
+            icon={missing || denied ? "⌕" : "!"}
+            title={missing ? "문서를 찾을 수 없어요" : denied ? "열람 권한이 없는 문서예요" : "문서를 불러오지 못했어요"}
+            description={missing ? "삭제됐거나 주소가 바뀌었을 수 있어요." : loadError.message}
+            actionLabel={missing || denied ? "문서함으로" : "다시 시도"}
+            onAction={missing || denied ? () => (window.location.href = "/inhouse/documents") : load}
+          />
+        </div>
+      </WdPage>
+    );
+  }
+
+  if (!doc) {
+    return (
+      <WdPage active="documents">
+        <div className="wd-wrap wd-pb">
+          <p className="wd-t11 wd-faint" aria-busy="true" style={{ padding: "48px 0" }}>
+            문서를 불러오는 중이에요…
+          </p>
+        </div>
+      </WdPage>
+    );
+  }
+
   if (doc.type === "TEMPLATE") {
-    const fields = TEMPLATE_FIELDS[doc.slug] ?? [];
     return (
       <WdPage active="documents">
         <div className="wd-wrap wd-pb">
@@ -46,7 +115,7 @@ export default function DocumentPage() {
               <button type="button" className="wd-btn line sm" onClick={share}>
                 링크 복사
               </button>
-              <Link className="wd-btn" href={`/inhouse/requests/new?type=expense&template=${doc.slug}`}>
+              <Link className="wd-btn" href={`/inhouse/requests/new?type=expense&template=${encodeURIComponent(doc.slug)}`}>
                 이 템플릿으로 결재 작성 →
               </Link>
             </div>
@@ -54,19 +123,29 @@ export default function DocumentPage() {
           <div className="wd-side">
             <div className="wd-card" style={{ padding: 32 }}>
               <span className="wd-t9 wd-faint" style={{ fontWeight: 750, letterSpacing: ".1em" }}>미리보기</span>
-              {fields.map(([k, v]) => (
+              {doc.fields.length === 0 && (
+                <p className="wd-t11 wd-faint" style={{ margin: "16px 0 0" }}>
+                  등록된 작성 항목이 없어요. 원본 파일을 내려받아 확인해 주세요.
+                </p>
+              )}
+              {doc.fields.map(([k, v]) => (
                 <div key={k} style={{ padding: "16px 0", borderBottom: "1px solid #e5e8eb" }}>
                   <b className="wd-t11">{k}</b>
                   <div className="wd-input ph" style={{ marginTop: 8, minHeight: 38 }}>{v}</div>
                 </div>
               ))}
+              {doc.file && (
+                <div style={{ marginTop: 20 }}>
+                  <Attachments files={[doc.file]} />
+                </div>
+              )}
             </div>
             <aside className="wd-card">
               <dl className="wd-kv one">
-                <div><dt>연결 결재</dt><dd>비용 승인 · 물품 구매</dd></div>
-                <div><dt>기본 결재선</dt><dd>NativeOps 리드 → FA</dd></div>
-                <div><dt>담당 부서</dt><dd>{doc.owner}</dd></div>
-                <div><dt>최근 수정</dt><dd>{doc.date}</dd></div>
+                <div><dt>연결 결재</dt><dd>{doc.approvalTypes.length ? doc.approvalTypes.join(" · ") : "-"}</dd></div>
+                <div><dt>이번 달 사용</dt><dd>{doc.usageThisMonth}건</dd></div>
+                {doc.owner && <div><dt>담당</dt><dd>{doc.owner}</dd></div>}
+                {doc.date && <div><dt>최근 수정</dt><dd>{doc.date}</dd></div>}
               </dl>
             </aside>
           </div>
@@ -76,8 +155,8 @@ export default function DocumentPage() {
     );
   }
 
-  const sections = doc.sections ?? [{ title: "본문", lines: [{ text: doc.copy }] }];
-  const readCount = 13 + (read ? 1 : 0);
+  const sections = doc.sections;
+  const hasRevision = doc.revised || sections.some((s) => s.revised || s.lines.some((l) => l.now));
 
   return (
     <WdPage active="documents">
@@ -85,6 +164,18 @@ export default function DocumentPage() {
         <div className="wd-crumb">
           <Link href="/inhouse/documents">문서함</Link> › {doc.category} › <b>{doc.title}</b>
         </div>
+        {version && (
+          <div className="wd-banner warn" style={{ marginBottom: 20 }}>
+            <span className="ico" style={{ color: "#9a6b00" }}>!</span>
+            <div>
+              <b>{version} 버전을 보고 있어요</b>
+              <p>지금 시행 중인 문서와 다를 수 있어요.</p>
+            </div>
+            <Link className="wd-btn sm" href={`/inhouse/documents/${doc.slug}`}>
+              현재 문서 보기
+            </Link>
+          </div>
+        )}
         <section className="wd-hero sm">
           <div>
             <Eyebrow>
@@ -95,15 +186,13 @@ export default function DocumentPage() {
             <div className="wd-row wd-t10 wd-faint" style={{ gap: 16, flexWrap: "wrap" }}>
               {doc.effective && <span>시행 {doc.effective}</span>}
               {doc.owner && <span>담당 {doc.owner}</span>}
-              <span>개정 {doc.date}</span>
+              {doc.date && <span>개정 {doc.date}</span>}
             </div>
           </div>
           <div className="wd-row">
-            {DOC_HISTORY[doc.slug] && (
-              <Link className="wd-btn line sm" href={`/inhouse/documents/${doc.slug}/history`}>
-                변경 내역
-              </Link>
-            )}
+            <Link className="wd-btn line sm" href={`/inhouse/documents/${doc.slug}/history`}>
+              변경 내역
+            </Link>
             <button type="button" className="wd-btn line sm" onClick={share}>
               링크 복사
             </button>
@@ -114,7 +203,7 @@ export default function DocumentPage() {
             <b className="wd-t9 wd-faint" style={{ padding: "0 12px 8px" }}>목차</b>
             {sections.map((s, i) => (
               <a
-                key={s.title}
+                key={`${s.title}-${i}`}
                 href={`#sec-${i}`}
                 className={section === i ? "on" : ""}
                 onClick={() => setSection(i)}
@@ -125,14 +214,15 @@ export default function DocumentPage() {
             ))}
           </nav>
           <article className="wd-card wd-doc" style={{ padding: 32 }}>
-            {doc.revised && (
+            {hasRevision && (
               <div className="wd-row wd-t10" style={{ marginBottom: 22, gap: 8 }}>
                 <button type="button" role="switch" aria-checked={highlight} className={`wd-toggle ${highlight ? "on" : ""}`} onClick={() => setHighlight((v) => !v)} aria-label="개정된 부분 강조" />
                 <span>개정된 부분 강조</span>
               </div>
             )}
+            {sections.length === 0 && <p className="wd-t11 wd-faint">아직 본문이 없어요.</p>}
             {sections.map((s, i) => (
-              <section key={s.title} id={`sec-${i}`}>
+              <section key={`${s.title}-${i}`} id={`sec-${i}`}>
                 <h3>{s.title}</h3>
                 {s.lines.map((l, j) => (
                   <p key={j}>
@@ -140,7 +230,7 @@ export default function DocumentPage() {
                     {l.now &&
                       (highlight ? (
                         <>
-                          <del>{l.was}</del> <mark>{l.now}</mark>
+                          {l.was && <del>{l.was}</del>} <mark>{l.now}</mark>
                         </>
                       ) : (
                         l.now
@@ -152,43 +242,40 @@ export default function DocumentPage() {
             ))}
           </article>
           <aside className="wd-stack">
-            {doc.revised && (
-              <section className="wd-card" style={{ borderColor: "#cfe0fd" }}>
+            {!version && (
+              <section className="wd-card" style={{ borderColor: doc.read ? undefined : "#cfe0fd" }}>
                 <h3 style={{ fontSize: 12 }}>읽음 확인</h3>
-                <p className="wd-t9 wd-faint" style={{ margin: "6px 0 14px" }}>시행 전까지 전원 확인이 필요한 문서예요.</p>
-                <div className="wd-between wd-t10" style={{ marginBottom: 8 }}>
-                  <span>
-                    {readCount} / {TEAM_SIZE}명 확인
-                  </span>
-                  <span className="wd-faint">{Math.round((readCount / TEAM_SIZE) * 100)}%</span>
-                </div>
-                <div className="wd-bar" style={{ marginBottom: 16 }}>
-                  <i style={{ width: `${(readCount / TEAM_SIZE) * 100}%` }} />
-                </div>
+                <p className="wd-t9 wd-faint" style={{ margin: "6px 0 14px" }}>
+                  {doc.read
+                    ? `${doc.readAt ? `${doc.readAt.slice(0, 10).replace(/-/g, ".")}에 ` : ""}확인했어요.`
+                    : doc.revised
+                      ? "개정된 문서예요. 읽고 나서 확인을 눌러 주세요."
+                      : "읽고 나서 확인을 눌러 주세요."}
+                </p>
+                {confirmed !== null && (
+                  <p className="wd-t10" style={{ margin: "0 0 12px" }}>지금까지 {confirmed}명이 확인했어요.</p>
+                )}
                 <button
                   type="button"
-                  className={`wd-btn full ${read ? "ghost" : "blue"}`}
-                  disabled={read}
-                  onClick={() => {
-                    saveLocal(READ_KEY, [...loadLocal<string[]>(READ_KEY, []), slug]);
-                    setRead(true);
-                    toast.show("확인했어요. 고마워요!");
-                  }}
+                  className={`wd-btn full ${doc.read ? "ghost" : "blue"}`}
+                  disabled={doc.read || confirming}
+                  aria-busy={confirming}
+                  onClick={confirm}
                 >
-                  {read ? "✓ 확인 완료" : "확인했어요"}
+                  {doc.read ? "✓ 확인 완료" : confirming ? "저장 중…" : "확인했어요"}
                 </button>
               </section>
             )}
-            <section className="wd-card soft">
-              <h3 style={{ fontSize: 12 }}>관련 문서</h3>
-              {DOCS.filter((d) => d.slug !== slug && d.type !== "TEMPLATE")
-                .slice(0, 2)
-                .map((d) => (
+            {related.length > 0 && (
+              <section className="wd-card soft">
+                <h3 style={{ fontSize: 12 }}>관련 문서</h3>
+                {related.map((d) => (
                   <Link key={d.slug} href={`/inhouse/documents/${d.slug}`} className="wd-between wd-t10" style={{ padding: "10px 0" }}>
                     {d.title} <span className="wd-faint">→</span>
                   </Link>
                 ))}
-            </section>
+              </section>
+            )}
           </aside>
         </div>
       </div>
