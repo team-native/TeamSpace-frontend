@@ -8,7 +8,7 @@ import { useOutside } from "./ui";
 
 export default function NotificationBell() {
   const router = useRouter();
-  const { items, unreadCount, markRead, markAllRead } = useNotifications();
+  const { items, unreadCount, unreadLabel, markRead, markAllRead, loaded } = useNotifications();
   const [open, setOpen] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const ref = useOutside<HTMLDivElement>(open, () => setOpen(false));
@@ -22,7 +22,7 @@ export default function NotificationBell() {
       <button
         type="button"
         className={`wd-bell ${open ? "on" : ""}`}
-        aria-label={`알림 ${unreadCount}개`}
+        aria-label={`안 읽은 알림 ${unreadLabel}개`}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
@@ -30,7 +30,7 @@ export default function NotificationBell() {
           <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
         </svg>
-        {unreadCount > 0 && <b>{unreadCount}</b>}
+        {unreadCount > 0 && <b>{unreadLabel}</b>}
       </button>
       {open && (
         <div className="wd-pop pf-bell-pop" role="dialog" aria-label="알림">
@@ -57,6 +57,11 @@ export default function NotificationBell() {
             </div>
           )}
           <div className="wd-list" style={{ maxHeight: 330, overflow: "auto" }}>
+            {loaded && items.length === 0 && (
+              <p className="wd-t10 wd-muted" style={{ margin: 0, padding: "18px 16px", textAlign: "center" }}>
+                새 알림이 없어요
+              </p>
+            )}
             {items.slice(0, 5).map((n) => (
               <button
                 type="button"

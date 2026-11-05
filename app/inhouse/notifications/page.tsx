@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import WdPage from "@/components/inhouse/WdPage";
 import { Eyebrow } from "@/components/inhouse/ui";
-import type { Noti, NotiKind } from "@/lib/demo";
-import { useNotifications } from "@/lib/useNotifications";
+import type { NotiKind } from "@/lib/demo";
+import { useNotifications, type Noti } from "@/lib/useNotifications";
 import EmptyState from "@/components/inhouse/EmptyState";
 
 const TABS: ("전체" | NotiKind)[] = ["전체", "내 업무", "재정", "일정", "공지"];
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { items, unreadCount, markRead, markAllRead, later } = useNotifications();
+  const { items, unreadCount, unreadLabel, markRead, markAllRead, later, loading, loaded, error, hasMore, loadMore, reload } = useNotifications();
   const [tab, setTab] = useState<(typeof TABS)[number]>("전체");
   const shown = items.filter((n) => tab === "전체" || n.kind === tab);
 
@@ -29,7 +29,7 @@ export default function NotificationsPage() {
           <div>
             <Eyebrow>NOTIFICATIONS</Eyebrow>
             <h1>알림</h1>
-            <p>안 읽은 알림 {unreadCount}개 · 항목을 누르면 해당 화면으로 이동해요.</p>
+            <p>안 읽은 알림 {unreadLabel}개 · 항목을 누르면 해당 화면으로 이동해요.</p>
           </div>
           <div className="wd-row">
             <Link className="wd-btn line sm" href="/inhouse/my/settings">
@@ -48,15 +48,29 @@ export default function NotificationsPage() {
             </button>
           ))}
         </div>
-        {shown.length === 0 ? (
+        {error && (
+          <div className="wd-banner danger" role="alert" style={{ marginBottom: 14, padding: "12px 14px" }}>
+            <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>!</span>
+            <p style={{ margin: 0, flex: 1 }}>{error}</p>
+            <button type="button" className="wd-btn ghost sm" onClick={() => void reload()}>
+              다시 시도
+            </button>
+          </div>
+        )}
+        {!loaded && loading ? (
+          <div className="wd-card wd-muted wd-t11" aria-busy="true" style={{ textAlign: "center", padding: 40 }}>
+            알림을 불러오는 중…
+          </div>
+        ) : shown.length === 0 ? (
   <EmptyState
     icon="✓"
     title="새 알림이 없어요"
     description="결재나 공지가 오면 여기에 모여요."
   />
 ) : (
+        <>
         <div className="wd-card" style={{ padding: 0, overflow: "hidden" }}>
-          {(["오늘", "이번 주"] as const).map((when, gi) => {
+          {(["오늘", "이번 주", "이전"] as const).map((when, gi) => {
             const group = shown.filter((n) => n.when === when);
             if (!group.length) return null;
 
@@ -129,6 +143,14 @@ export default function NotificationsPage() {
             );
           })}
         </div>
+        {hasMore && (
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <button type="button" className="wd-btn line sm" onClick={() => void loadMore()} disabled={loading}>
+              {loading ? "불러오는 중…" : "알림 더 보기"}
+            </button>
+          </div>
+        )}
+        </>
       )}
       </div>
     </WdPage>
