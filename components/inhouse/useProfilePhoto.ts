@@ -35,8 +35,9 @@ export function useProfilePhoto(email: string) {
   return photo;
 }
 
-// 정면 사진을 640x800(4:5)로 잘라 data URL로 변환
-export async function cropToPortrait(file: File) {
+// 정면 사진을 4:5(기본 640x800)로 잘라 data URL로 변환
+export async function cropToPortrait(file: File, width = 640, quality = 0.86) {
+  const height = Math.round((width * 5) / 4);
   const url = URL.createObjectURL(file);
   try {
     const img = new window.Image();
@@ -46,16 +47,16 @@ export async function cropToPortrait(file: File) {
       img.onerror = () => reject(new Error("사진을 읽지 못했습니다."));
     });
     const ratio = img.width / img.height;
-    const target = 640 / 800;
+    const target = width / height;
     const sw = ratio > target ? img.height * target : img.width;
     const sh = ratio > target ? img.height : img.width / target;
     const canvas = document.createElement("canvas");
-    canvas.width = 640;
-    canvas.height = 800;
+    canvas.width = width;
+    canvas.height = height;
     canvas
       .getContext("2d")
-      ?.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, 640, 800);
-    return canvas.toDataURL("image/jpeg", 0.86);
+      ?.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", quality);
   } finally {
     URL.revokeObjectURL(url);
   }
