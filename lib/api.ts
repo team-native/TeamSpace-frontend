@@ -166,3 +166,61 @@ export function requestPasswordReset(email: string) {
 export function resetPassword(token: string, password: string) {
   return api<{ success: boolean }>("/auth/password-reset", { method: "POST", body: { token, password }, auth: false });
 }
+
+// ---- 첨부 파일 ----
+
+export type Attachment = { id: string; name: string; size: number; contentType: string };
+
+type ServerAttachment = { id?: string | number; uploadId?: string | number; fileId?: string | number; url?: string; filename?: string; name?: string; size?: number; contentType?: string };
+
+export function toAttachment(a: ServerAttachment | string | number): Attachment | null {
+  if (typeof a !== "object") {
+    const id = String(a).split("/uploads/").pop()?.split("?")[0] ?? "";
+    return id ? { id, name: "첨부 파일", size: 0, contentType: "" } : null;
+  }
+  const raw = a.id ?? a.uploadId ?? a.fileId ?? a.url?.split("/uploads/").pop()?.split("?")[0];
+  if (raw === undefined || raw === null || raw === "") return null;
+  return { id: String(raw), name: a.filename || a.name || "첨부 파일", size: a.size ?? 0, contentType: a.contentType ?? "" };
+}
+
+export const toAttachments = (list: unknown): Attachment[] =>
+  Array.isArray(list) ? (list.map((x) => toAttachment(x as ServerAttachment)).filter(Boolean) as Attachment[]) : [];
+
+export function fileSize(bytes: number): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+// GET /uploads/{id} 는 토큰이 필요해서 링크 대신 받아서 저장시킨다
+export async function downloadUpload(file: Attachment): Promise<void> {
+  const send = () => {
+    const token = read(ACCESS_KEY);
+    return fetch(`${BASE}/uploads/${encodeURIComponent(file.id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  };
+  let res: Response;
+  try {
+    res = await send();
+    if (res.status === 401 && (await refreshTokens())) res = await send();
+  } catch {
+    throw new ApiError(0, "서버에 연결하지 못했어요. 네트워크를 확인해 주세요.");
+  }
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+    throw new ApiError(res.status, errorMessage(res.status, body));
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
