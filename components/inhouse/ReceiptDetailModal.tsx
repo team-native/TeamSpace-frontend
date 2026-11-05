@@ -1,15 +1,18 @@
 
 "use client";
 
-import { CONTRACTS, CONTRACT_STEPS, type ReceiptRow } from "@/lib/demo";
-import { won, type Receipt } from "@/lib/inhouse";
+import { useEffect, useState } from "react";
+import { CONTRACT_STEPS, fetchContract, type Contract, type ReceiptRow } from "@/lib/finance";
+import { won, type Pool, type Receipt } from "@/lib/inhouse";
 import ModalPortal from "@/components/inhouse/ModalPortal";
+import Attachments from "@/components/inhouse/Attachments";
 import { Modal } from "@/components/inhouse/ui";
 
 type Props =
   | {
       type: "receipt";
       item: Receipt;
+      pools?: Pool[];
       onClose: () => void;
     }
   | {
@@ -19,8 +22,15 @@ type Props =
     };
 
 export default function ReceiptDetailModal(props: Props) {
-  if (props.type === "receipt") {
-    const { item, onClose } = props;
+  return props.type === "receipt" ? <ReceiptModal {...props} /> : <ContractModal {...props} />;
+}
+
+function ReceiptModal(props: Extract<Props, { type: "receipt" }>) {
+    const { item, onClose, pools = [] } = props;
+    const split = pools
+      .filter((p) => p.ratio > 0)
+      .map((p) => `${(p.label || p.id).replace(/풀$/, "")} ${p.ratio}%`)
+      .join(" · ");
 
     return (
       <ModalPortal>
@@ -50,7 +60,7 @@ export default function ReceiptDetailModal(props: Props) {
               <div className="pf-detail-amount">
                 <span>{item.status}</span>
                 <strong>{won.format(item.amount)}원</strong>
-                <small>입금일 · {item.date}</small>
+                <small>{item.status === "입금 완료" ? "입금일" : "일자"} · {item.date || "-"}</small>
               </div>
 
               <dl>
@@ -68,7 +78,7 @@ export default function ReceiptDetailModal(props: Props) {
                 </div>
                 <div>
                   <dt>풀 배분</dt>
-                  <dd>운영 40% · 적립 30% · 배당 30%</dd>
+                  <dd>{split || "설정 전"}</dd>
                 </div>
               </dl>
 
@@ -80,10 +90,25 @@ export default function ReceiptDetailModal(props: Props) {
         </div>
       </ModalPortal>
     );
-  }
 
+}
+
+function ContractModal(props: Extract<Props, { type: "contract" }>) {
   const { item, onClose } = props;
-  const contract = CONTRACTS[item.project];
+  const [contract, setContract] = useState<Contract | null | undefined>(undefined);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    setContract(undefined);
+    setError("");
+    fetchContract(item.project)
+      .then((c) => alive && setContract(c))
+      .catch((e) => alive && setError(e instanceof Error ? e.message : "계약 정보를 불러오지 못했어요."));
+    return () => {
+      alive = false;
+    };
+  }, [item.project]);
 
   return (
     <Modal
@@ -98,6 +123,19 @@ export default function ReceiptDetailModal(props: Props) {
         </button>
       }
     >
+      {contract === undefined && !error && (
+        <p className="wd-t11 wd-faint" aria-busy="true">
+          계약 정보를 불러오는 중이에요…
+        </p>
+      )}
+      {error && (
+        <div className="wd-banner danger" style={{ marginBottom: 16 }}>
+          <span className="ico">!</span>
+          <div>
+            <b>{error}</b>
+          </div>
+        </div>
+      )}
       {contract ? (
         <>
           <div
@@ -117,7 +155,7 @@ export default function ReceiptDetailModal(props: Props) {
               <div className="wd-bar" style={{ width: 220, marginTop: 8 }}>
                 <i
                   style={{
-                    width: `${(contract.collected / contract.total) * 100}%`,
+                    width: `${contract.total ? Math.min(100, (contract.collected / contract.total) * 100) : 0}%`,
                   }}
                 />
               </div>
@@ -144,7 +182,7 @@ export default function ReceiptDetailModal(props: Props) {
                     {i < contract.step ? "✓" : i + 1}
                   </span>
                   <b>{step}</b>
-                  <small>{contract.stepDates[i]}</small>
+                  <small>{contract.stepDates[i] ?? ""}</small>
                 </div>
               ))}
             </div>
@@ -153,32 +191,37 @@ export default function ReceiptDetailModal(props: Props) {
           <dl className="wd-kv" style={{ marginBottom: 20 }}>
             <div>
               <dt>담당 PM</dt>
-              <dd>{contract.pm}</dd>
+              <dd>{contract.pm || "-"}</dd>
             </div>
             <div>
               <dt>참여 인원</dt>
-              <dd>{contract.staff}</dd>
+              <dd>{contract.staff || "-"}</dd>
             </div>
             <div>
               <dt>배분 기준</dt>
-              <dd>{contract.split}</dd>
+              <dd>{contract.split || "-"}</dd>
             </div>
             <div>
               <dt>다음 청구</dt>
-              <dd>{contract.next}</dd>
+              <dd>{contract.next || "-"}</dd>
             </div>
           </dl>
 
-          <div className="wd-file">
-            <span className="ext">PDF</span>
-            <div>
-              <b>{contract.file}</b>
-              <small>계약서 · {contract.signed} 업로드</small>
-            </div>
-            <span className="end">↓</span>
-          </div>
+          {contract.file ? (
+            <Attachments files={[contract.file]} title="계약서" />
+          ) : (
+            contract.fileName && (
+              <div className="wd-file">
+                <span className="ext">PDF</span>
+                <div>
+                  <b>{contract.fileName}</b>
+                  <small>계약서{contract.signed ? ` · ${contract.signed}` : ""}</small>
+                </div>
+              </div>
+            )
+          )}
         </>
-      ) : (
+      ) : contract === null ? (
         <dl className="wd-kv">
           <div>
             <dt>금액</dt>
@@ -197,7 +240,7 @@ export default function ReceiptDetailModal(props: Props) {
             <dd>아직 등록되지 않았어요</dd>
           </div>
         </dl>
-      )}
+      ) : null}
     </Modal>
   );
 }

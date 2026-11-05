@@ -3,12 +3,10 @@
 import Image from "next/image";
 import PortalShell from "@/components/inhouse/PortalShell";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
-import { useInhouseData } from "@/lib/inhouse";
 import { departmentsOf, founderOf, usePeople, type Person } from "@/lib/people";
 import TeamFinder from "@/components/inhouse/TeamFinder";
 
 export default function TeamPage() {
-  const { data } = useInhouseData();
   // 실패하면 PortalShell 이 오류 화면(다시 불러오기)을 보여준다
   const { people, error } = usePeople();
   const founder = people ? founderOf(people) : null;
@@ -17,7 +15,7 @@ export default function TeamPage() {
   useRevealOnScroll(".np-reveal", { threshold: 0.1, rootMargin: "0px 0px -24px" }, [people]);
 
   return (
-    <PortalShell data={data} error={error} active="team">
+    <PortalShell error={error} active="team">
       {!error && !people && (
         <div className="wd-scope wd-muted wd-t11" aria-busy="true" style={{ padding: "120px 20px", textAlign: "center" }}>
           팀원을 불러오는 중…

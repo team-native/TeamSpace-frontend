@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import EmptyState from "@/components/inhouse/EmptyState";
 import PortalShell from "@/components/inhouse/PortalShell";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
-import { useInhouseData } from "@/lib/inhouse";
 import { useOutside } from "@/components/inhouse/ui";
 import { loadLocal, saveLocal } from "@/lib/demo";
 import { fetchDocs, type DocItem } from "@/lib/docs";
@@ -13,7 +12,6 @@ import { fetchDocs, type DocItem } from "@/lib/docs";
 const RECENT_KEY = "native-inhouse-recent-searches";
 
 export default function DocumentsPage() {
-  const { data, error } = useInhouseData();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("전체");
   const [focused, setFocused] = useState(false);
@@ -68,13 +66,12 @@ export default function DocumentsPage() {
   useRevealOnScroll(
     ".pf-doc-reveal",
     { threshold: 0.12, rootMargin: "0px 0px -34px" },
-    [data, docs, category, query],
+    [docs, category, query],
   );
 
   return (
-    <PortalShell data={data} error={error} active="documents">
-      {data && (
-        <>
+    <PortalShell active="documents">
+      <>
           <section className="pf-doc-hero pf-doc-reveal">
             <div>
               <span>TEAM LIBRARY</span>
@@ -296,8 +293,7 @@ export default function DocumentsPage() {
               )}
             </div>
           </section>
-        </>
-      )}
+      </>
     </PortalShell>
   );
 }
