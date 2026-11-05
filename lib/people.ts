@@ -3,7 +3,7 @@
 // 팀원: GET /people (커서로 끝까지 받아 화면에서 거른다. 팀 규모가 작아서)
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
-import { DEPARTMENTS, type Tone } from "./demo";
+import { DEPARTMENTS, type Tone } from "./shared";
 
 export type Person = {
   id: string;

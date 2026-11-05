@@ -1,6 +1,6 @@
 // 문의 · 건의: GET /inquiries · POST /inquiries · resolve · comments
 import { api } from "./api";
-import type { Tone } from "./demo";
+import type { Tone } from "./shared";
 
 export const INQUIRY_TYPES = ["문의", "건의", "불편 신고"] as const;
 export const INQUIRY_STEPS = ["접수", "검토 중", "답변 완료"] as const;

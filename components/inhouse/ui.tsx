@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { initial, person, type Tone } from "@/lib/demo";
+import { initial, toneOf, type Tone } from "@/lib/shared";
 import ModalPortal from "./ModalPortal";
 
 export function Eyebrow({ children }: { children: ReactNode }) {
@@ -13,7 +13,7 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 }
 
 export function Av({ name, id, tone, size = "" }: { name: string; id?: string; tone?: Tone; size?: "" | "sm" | "lg" | "xl" }) {
-  const t = tone ?? (id ? person(id)?.tone : undefined) ?? "";
+  const t = tone ?? (id ? toneOf(id) : undefined) ?? "";
   return <span className={`wd-av ${size} ${t}`}>{initial(name)}</span>;
 }
 

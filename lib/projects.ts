@@ -1,6 +1,6 @@
 // 참여 프로젝트 · 내 공간: /me/projects · /projects/{id} · apply · /me/summary · /me/activity
 import { api } from "./api";
-import type { Tone } from "./demo";
+import type { Tone } from "./shared";
 
 const TONES: Tone[] = ["blue", "violet", "green", "orange", "red", "dark", ""];
 type Raw = Record<string, unknown>;

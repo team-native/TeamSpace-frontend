@@ -1,6 +1,6 @@
 // 공지: GET /notices · GET /notices/{id} · POST /notices/{id}/confirm
 import { api, toAttachments, type Attachment } from "./api";
-import type { Tone } from "./demo";
+import type { Tone } from "./shared";
 
 export const NOTICE_FILTERS = ["전체", "필독", "제도", "일정", "일반"] as const;
 export type NoticeFilter = (typeof NOTICE_FILTERS)[number];

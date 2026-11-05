@@ -19,7 +19,7 @@ import {
   type Post,
   type PostDetail,
 } from "@/lib/board";
-import { loadLocal, saveLocal } from "@/lib/demo";
+import { loadLocal, saveLocal } from "@/lib/shared";
 import EmptyState from "@/components/inhouse/EmptyState";
 
 // 서버가 게시글 공감 여부를 주지 않아서, 이 기기에서 누른 기록으로 처음 상태만 맞춘다

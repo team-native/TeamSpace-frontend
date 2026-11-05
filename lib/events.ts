@@ -1,6 +1,6 @@
 // 일정: GET /events?month · /events/{id} · rsvp · reminders
 import { api } from "./api";
-import type { Tone } from "./demo";
+import type { Tone } from "./shared";
 
 export const RSVP_OPTIONS = ["참석", "불참", "미정"] as const;
 export type RsvpAnswer = (typeof RSVP_OPTIONS)[number];

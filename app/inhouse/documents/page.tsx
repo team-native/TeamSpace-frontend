@@ -6,7 +6,7 @@ import EmptyState from "@/components/inhouse/EmptyState";
 import PortalShell from "@/components/inhouse/PortalShell";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
 import { useOutside } from "@/components/inhouse/ui";
-import { loadLocal, saveLocal } from "@/lib/demo";
+import { loadLocal, saveLocal } from "@/lib/shared";
 import { fetchDocs, type DocItem } from "@/lib/docs";
 
 const RECENT_KEY = "native-inhouse-recent-searches";

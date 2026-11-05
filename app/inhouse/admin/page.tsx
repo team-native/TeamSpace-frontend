@@ -16,7 +16,7 @@ import {
   type Unconfirmed,
 } from "@/lib/admin-api";
 import { relTime } from "@/lib/board";
-import type { Tone } from "@/lib/demo";
+import type { Tone } from "@/lib/shared";
 import type { ReceiptRow } from "@/lib/finance";
 import type { Inquiry } from "@/lib/inquiries";
 import type { Notice } from "@/lib/notices";
