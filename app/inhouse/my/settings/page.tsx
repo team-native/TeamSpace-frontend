@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import MyShell, { MyTitle } from "@/components/inhouse/MyShell";
 import { Modal, useToast } from "@/components/inhouse/ui";
 import { loadLocal, saveLocal } from "@/lib/demo";
+import { logout } from "@/lib/api";
 
 const KEY = "native-inhouse-settings";
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
@@ -97,7 +98,10 @@ export default function SettingsPage() {
               <span className="wd-badge green">전체 열람 가능</span>
             </Row>
             <Row t="로그아웃">
-              <button type="button" className="wd-btn ghost sm" onClick={() => router.replace("/inhouse/login")}>
+              <button type="button" className="wd-btn ghost sm" onClick={() => {
+                  logout();
+                  router.replace("/inhouse/login");
+                }}>
                 로그아웃
               </button>
             </Row>
