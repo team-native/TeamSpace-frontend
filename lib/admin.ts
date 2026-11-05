@@ -5,15 +5,6 @@ import type { Tone } from "./demo";
 export const ADMIN_DEPTS = ["Leader", "NativeOps", "FA"] as const;
 export const isAdmin = (dept: string) => (ADMIN_DEPTS as readonly string[]).includes(dept);
 
-export type FinanceRole = { id: string; view: boolean; edit: boolean; changed?: string };
-export const FINANCE_ROLES: FinanceRole[] = [
-  { id: "junpyo", view: true, edit: true },
-  { id: "minjae", view: true, edit: true },
-  { id: "haeun", view: true, edit: false },
-  { id: "doyun", view: false, edit: false },
-  { id: "jiwoo", view: false, edit: false },
-];
-
 export type OrderStatus = "제작" | "입금 대기" | "청구 완료" | "수금 완료" | "연체";
 export const ORDER_TONE: Record<OrderStatus, Tone> = { 제작: "blue", "입금 대기": "orange", "청구 완료": "blue", "수금 완료": "green", 연체: "red" };
 export type Order = { id: string; project: string; client: string; pm: string; status: OrderStatus; total: number; collected: number };

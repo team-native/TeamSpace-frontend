@@ -162,3 +162,25 @@ export type NoticeInput = {
 export const createNotice = (input: NoticeInput) => api<{ id: string }>("/admin/notices", { method: "POST", body: input });
 export const updateNotice = (id: string, input: Partial<NoticeInput>) =>
   api<{ id: string }>(`/admin/notices/${encodeURIComponent(id)}`, { method: "PATCH", body: input });
+
+// ---- 재정 권한 (Admin만) ----
+
+export type FinanceMember = { id: string; name: string; email: string; roles: string[]; canView: boolean };
+
+export async function fetchFinancePermissions(): Promise<FinanceMember[]> {
+  const page = await api<Page>("/admin/finance/permissions");
+  return page.items.map((p) => ({
+    id: str(p.id),
+    name: str(p.name) || "이름 없음",
+    email: str(p.email),
+    roles: Array.isArray(p.roles) ? p.roles.map(str) : [],
+    canView: !!p.canViewFinance,
+  }));
+}
+
+// 켜면 FA 역할을 주고, 끄면 FA 만 뺀다 (Admin · Leader 는 그대로 열람 가능)
+export const setFinancePermission = (userId: string, canViewFinance: boolean) =>
+  api<{ id: string; roles: string[]; canViewFinance: boolean }>(`/admin/finance/permissions/${encodeURIComponent(userId)}`, {
+    method: "PATCH",
+    body: { canViewFinance },
+  });
