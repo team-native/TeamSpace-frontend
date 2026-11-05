@@ -1,50 +1,99 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import WdPage from "@/components/inhouse/WdPage";
 import EmptyState from "@/components/inhouse/EmptyState";
 import { won } from "@/lib/inhouse";
 import { Eyebrow, useOutside } from "@/components/inhouse/ui";
+import { ApiError } from "@/lib/api";
 import {
-  RECEIPT_ROWS,
+  RECEIPT_STATUSES,
   RECEIPT_TONE,
-  type ReceiptStatus,
+  fetchReceipts,
   type ReceiptRow,
-} from "@/lib/demo";
-import ReceiptDetailModal from "../../../../components/inhouse/ReceiptDetailModal";
+  type ReceiptTotals,
+} from "@/lib/finance";
+import ReceiptDetailModal from "@/components/inhouse/ReceiptDetailModal";
 
-const STATUSES: ("전체" | ReceiptStatus)[] = ["전체", "청구 완료", "입금 대기", "입금 완료", "연체"];
+type ReceiptStatus = (typeof RECEIPT_STATUSES)[number];
+const STATUSES: ("전체" | ReceiptStatus)[] = ["전체", ...RECEIPT_STATUSES];
 
-const PRESETS = [
-  ["이번 달", "2026-10", "2026-10"],
-  ["최근 3개월", "2026-08", "2026-10"],
-  ["올해", "2026-01", "2026-12"],
-] as const;
+const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const monthsAgo = (n: number) => {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - n);
+  return ym(d);
+};
+// "2026-10" 의 마지막 날
+const lastDay = (m: string) => {
+  const [y, mo] = m.split("-").map(Number);
+  return `${m}-${String(new Date(y, mo, 0).getDate()).padStart(2, "0")}`;
+};
 
-// 데모: 재정 정보 전체 열람은 FA · Leader 만. 지금 계정은 Leader
-const CAN_SEE_ALL = true;
+function presets() {
+  const year = new Date().getFullYear();
+  return [
+    ["이번 달", monthsAgo(0), monthsAgo(0)],
+    ["최근 3개월", monthsAgo(2), monthsAgo(0)],
+    ["올해", `${year}-01`, `${year}-12`],
+  ] as const;
+}
+const defaultRange = () => ({ label: "최근 3개월", from: monthsAgo(2), to: monthsAgo(0) });
 
 export default function ReceiptsPage() {
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("전체");
-  const [range, setRange] = useState<{ label: string; from: string; to: string }>({
-    label: "최근 3개월",
-    from: "2026-08",
-    to: "2026-10",
-  });
+  const [range, setRange] = useState<{ label: string; from: string; to: string }>(defaultRange);
   const [draft, setDraft] = useState(range);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selected, setSelected] = useState<ReceiptRow | null>(null);
+  const [inRange, setInRange] = useState<ReceiptRow[] | null>(null);
+  const [totals, setTotals] = useState<ReceiptTotals | null>(null);
+  const [error, setError] = useState<{ status: number; message: string } | null>(null);
+  const req = useRef(0);
   const pickerRef = useOutside<HTMLDivElement>(pickerOpen, () => setPickerOpen(false));
 
-  const inRange = useMemo(
-    () => RECEIPT_ROWS.filter((r) => r.month >= range.from && r.month <= range.to),
-    [range],
-  );
-  const rows = inRange.filter((r) => status === "전체" || r.status === status);
-  const sum = (s?: ReceiptStatus) =>
-    inRange.filter((r) => !s || r.status === s).reduce((a, r) => a + r.amount, 0);
+  const load = useCallback(async () => {
+    const id = ++req.current;
+    setError(null);
+    setInRange(null);
+    try {
+      const r = await fetchReceipts(`${range.from}-01`, lastDay(range.to));
+      if (id !== req.current) return;
+      setInRange(r.rows);
+      setTotals(r.totals);
+    } catch (e) {
+      if (id === req.current)
+        setError({ status: e instanceof ApiError ? e.status : 0, message: e instanceof Error ? e.message : "수금 내역을 불러오지 못했어요." });
+    }
+  }, [range]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const all = inRange ?? [];
+  const rows = all.filter((r) => status === "전체" || r.status === status);
+  const count = (s: ReceiptStatus) => all.filter((r) => r.status === s).length;
   const months = [...new Set(rows.map((r) => r.month))].sort().reverse();
+  const t = totals ?? { totalOrder: 0, paid: 0, pending: 0, overdue: 0 };
+
+  if (error?.status === 403) {
+    return (
+      <WdPage active="finance">
+        <div className="wd-wrap wd-pb">
+          <EmptyState
+            icon="🔒"
+            title="수금 내역은 재정 권한이 필요해요"
+            description="Admin · FA · Leader만 볼 수 있어요. 필요하면 운영진에게 요청해 주세요."
+            actionLabel="재무 현황으로"
+            onAction={() => (window.location.href = "/inhouse/finance")}
+          />
+        </div>
+      </WdPage>
+    );
+  }
 
   return (
     <WdPage active="finance">
@@ -75,7 +124,7 @@ export default function ReceiptsPage() {
                 <b className="wd-t11">기간 선택</b>
 
                 <div className="wd-seg" style={{ margin: "12px 0 14px" }}>
-                  {PRESETS.map(([label, from, to]) => (
+                  {presets().map(([label, from, to]) => (
                     <button
                       type="button"
                       key={label}
@@ -130,17 +179,29 @@ export default function ReceiptsPage() {
           </div>
         </section>
 
-        <div className="wd-grid g4" style={{ marginBottom: 24 }}>
+        {error && (
+          <div className="wd-banner danger" style={{ marginBottom: 18 }}>
+            <span className="ico">!</span>
+            <div>
+              <b>{error.message}</b>
+            </div>
+            <button type="button" className="wd-btn sm" onClick={load}>
+              다시 시도
+            </button>
+          </div>
+        )}
+
+        <div className="wd-grid g4" style={{ marginBottom: 24 }} aria-busy={!inRange && !error}>
           {[
-            ["누적 수주", sum(), `${inRange.length}건`],
-            ["입금 완료", sum("입금 완료"), `${Math.round((sum("입금 완료") / (sum() || 1)) * 100)}%`],
-            ["입금 대기", sum("입금 대기"), `${inRange.filter((r) => r.status === "입금 대기").length}건`],
-            ["연체", sum("연체"), `${inRange.filter((r) => r.status === "연체").length}건`],
+            ["누적 수주", t.totalOrder, `${all.length}건`],
+            ["입금 완료", t.paid, `${Math.round((t.paid / (t.totalOrder || 1)) * 100)}%`],
+            ["입금 대기", t.pending, `${count("입금 대기") + count("청구 완료")}건`],
+            ["연체", t.overdue, `${count("연체")}건`],
           ].map(([k, v, s], i) => (
             <div className="wd-card wd-stat" key={k as string}>
               <small>{k}</small>
               <strong style={{ color: i === 3 && (v as number) > 0 ? "#f04452" : undefined }}>
-                {CAN_SEE_ALL ? `${won.format(v as number)}원` : "권한 필요"}
+                {inRange ? `${won.format(v as number)}원` : "–"}
               </strong>
               <span className="wd-t9 wd-faint" style={{ display: "block", marginTop: 5 }}>
                 {s}
@@ -160,17 +221,19 @@ export default function ReceiptsPage() {
               >
                 {s}
                 <small>
-                  {s === "전체"
-                    ? inRange.length
-                    : inRange.filter((r) => r.status === s).length}
+                  {s === "전체" ? all.length : count(s)}
                 </small>
               </button>
             ))}
           </div>
-          <span className="wd-t9 wd-faint">FA · Leader 권한으로 전체 금액이 보여요</span>
+          <span className="wd-t9 wd-faint">재정 권한으로 전체 금액이 보여요</span>
         </div>
 
-        {rows.length > 0 ? (
+        {!inRange && !error ? (
+          <p className="wd-t11 wd-faint" aria-busy="true">
+            수금 내역을 불러오는 중이에요…
+          </p>
+        ) : rows.length > 0 ? (
           <div className="wd-card" style={{ padding: "18px 22px 6px", overflowX: "auto" }}>
             <table className="wd-table" style={{ minWidth: 640 }}>
               <thead>
@@ -197,11 +260,11 @@ export default function ReceiptsPage() {
                           <td><b>{r.client}</b></td>
                           <td>{r.project}</td>
                           <td>
-                            <span className={`wd-badge ${RECEIPT_TONE[r.status]}`}>
+                            <span className={`wd-badge ${RECEIPT_TONE[r.status] ?? ""}`}>
                               {r.status}
                             </span>
                           </td>
-                          <td className="wd-faint">{r.date}</td>
+                          <td className="wd-faint">{r.date.replace(/-/g, ".")}</td>
                           <td className="num">{won.format(r.amount)}원</td>
                         </tr>
                       ))}
@@ -210,22 +273,17 @@ export default function ReceiptsPage() {
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : error ? null : (
           <EmptyState
             icon="⌕"
               title="수금 내역이 없어요"
               description="기간이나 상태를 바꿔서 다시 확인해보세요."
               actionLabel="필터 초기화"
-              onAction ={() => {
-                const defaultRange = {
-                  label: "최근 3개월",
-                  from: "2026-08",
-                  to: "2026-10",
-                };
-
+              onAction={() => {
+                const next = defaultRange();
                 setStatus("전체");
-                setRange(defaultRange);
-                setDraft(defaultRange);
+                setRange(next);
+                setDraft(next);
                 setPickerOpen(false);
               }}
             />

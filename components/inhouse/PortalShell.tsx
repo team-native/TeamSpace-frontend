@@ -7,15 +7,16 @@ import { useMe } from "@/lib/session";
 import PortalHeader from "./PortalHeader";
 
 type Props = {
-  data: InhouseData | null;
-  error: string;
+  // 화면이 직접 데이터를 기다릴 때만 넘긴다. null 이면 불러오는 중 화면, 생략하면 바로 내용
+  data?: Pick<InhouseData, "member"> | null;
+  error?: string;
   active?: string;
   children: ReactNode;
 };
 
 export default function PortalShell({ data, error, active, children }: Props) {
   const { me } = useMe();
-  const member = { name: me?.name ?? data?.member.name ?? "", email: me?.email ?? data?.member.email ?? "" };
+  const member = { name: me?.name ?? data?.member?.name ?? "", email: me?.email ?? data?.member?.email ?? "" };
 
   return (
     <main className={`pf-shell ${active ? `pf-${active}` : ""}`}>
@@ -80,7 +81,7 @@ export default function PortalShell({ data, error, active, children }: Props) {
             </p>
           </div>
         </section>
-      ) : !data ? (
+      ) : data === null ? (
         <section
           className="wd-scope"
           style={{

@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
 import PortalShell from "@/components/inhouse/PortalShell";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
-import { useInhouseData } from "@/lib/inhouse";
 import { Eyebrow } from "@/components/inhouse/ui";
 import { APPROVAL_STATUSES, APPROVAL_TONE, fetchBox, type Approval, type ApprovalStatus } from "@/lib/approvals";
 import { UserRound } from "lucide-react";
@@ -47,15 +46,13 @@ export default function RequestsPage() {
 }
 
 function Requests() {
-  const { data, error } = useInhouseData();
   const params = useSearchParams();
 
-  useRevealOnScroll(".pf-request-reveal", { threshold: 0.14, rootMargin: "0px 0px -36px" }, [data]);
+  useRevealOnScroll(".pf-request-reveal", { threshold: 0.14, rootMargin: "0px 0px -36px" }, []);
 
   return (
-    <PortalShell data={data} error={error} active="requests">
-      {data && (
-        <>
+    <PortalShell active="requests">
+      <>
           <section className="pf-page-hero pf-request-hero">
             <span>
               <i /> APPROVAL · 전자결재
@@ -104,8 +101,7 @@ function Requests() {
           </section>
 
           <ApprovalBox initialTab={params.get("tab") === "received" ? "received" : "mine"} />
-        </>
-      )}
+      </>
     </PortalShell>
   );
 }
