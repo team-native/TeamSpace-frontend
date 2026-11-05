@@ -143,3 +143,22 @@ export const answerInquiry = (id: string, text: string) =>
 
 export const setInquiryStatus = (id: string, status: string) =>
   api<{ id: string; status: string }>(`/admin/inquiries/${encodeURIComponent(id)}`, { method: "PATCH", body: { status } });
+
+// ---- 공지 작성 · 수정 ----
+
+export type NoticeInput = {
+  kind: string;
+  title: string;
+  body: string;
+  pinned: boolean;
+  mustRead: boolean;
+  status: "PUBLISHED" | "SCHEDULED" | "DRAFT";
+  publishAt: string | null;
+  sendPush: boolean;
+  attachments: string[];
+  linkedDocuments: { slug: string; title: string }[];
+};
+
+export const createNotice = (input: NoticeInput) => api<{ id: string }>("/admin/notices", { method: "POST", body: input });
+export const updateNotice = (id: string, input: Partial<NoticeInput>) =>
+  api<{ id: string }>(`/admin/notices/${encodeURIComponent(id)}`, { method: "PATCH", body: input });
