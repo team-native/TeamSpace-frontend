@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MyShell, { MyTitle } from "@/components/inhouse/MyShell";
 import { useToast } from "@/components/inhouse/ui";
@@ -17,11 +18,14 @@ import {
   type Reminders,
   type RsvpAnswer,
 } from "@/lib/events";
+import { isAdminRole, useMe } from "@/lib/session";
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 
 export default function CalendarPage() {
   const toast = useToast();
+  const { me } = useMe();
+  const admin = isAdminRole(me);
   const now = new Date();
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const [scope, setScope] = useState<string>("전체");
@@ -120,6 +124,11 @@ export default function CalendarPage() {
         sub="일정을 누르면 상세와 참석 응답이 열려요."
         right={
           <div className="wd-row" style={{ gap: 6 }}>
+            {admin && (
+              <Link className="wd-btn sm" href="/inhouse/admin/events/new">
+                + 일정
+              </Link>
+            )}
             <button type="button" className="wd-btn line sm" onClick={() => shift(-1)} aria-label="이전 달">
               ‹
             </button>
@@ -190,7 +199,14 @@ export default function CalendarPage() {
           )}
           {selected && (
             <>
-              <span className={`wd-badge ${selected.tone}`}>{selected.scope} 일정</span>
+              <div className="wd-between">
+                <span className={`wd-badge ${selected.tone}`}>{selected.scope} 일정</span>
+                {admin && (
+                  <Link className="wd-link wd-t10" href={`/inhouse/admin/events/${selected.id}`}>
+                    수정
+                  </Link>
+                )}
+              </div>
               <h3 style={{ margin: "12px 0 6px", fontSize: 18 }}>{selected.title}</h3>
               <dl className="wd-kv one" style={{ margin: "14px 0 18px" }}>
                 <div><dt>일시</dt><dd>{whenText(selected)}</dd></div>

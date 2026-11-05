@@ -90,3 +90,22 @@ export function whenText(e: CalEvent): string {
   if (!e.start) return `${md} 종일`;
   return `${md} ${e.start}${e.end ? ` – ${e.end}` : ""}`;
 }
+
+export const fetchEvent = async (id: string) => toEvent(await api<Record<string, unknown>>(`/events/${encodeURIComponent(id)}`));
+
+export type EventInput = {
+  title: string;
+  date: string;
+  start: string;
+  end: string;
+  scope: string;
+  place: string;
+  audience: string;
+  agenda: string;
+  rsvp: boolean;
+};
+
+// 관리자만: POST /admin/events · PATCH /admin/events/{id}
+export const createEvent = (input: EventInput) => api<{ id: string }>("/admin/events", { method: "POST", body: input });
+export const updateEvent = (id: string, input: Partial<EventInput>) =>
+  api<{ id: string }>(`/admin/events/${encodeURIComponent(id)}`, { method: "PATCH", body: input });
