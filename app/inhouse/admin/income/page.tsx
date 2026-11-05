@@ -1,202 +1,452 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell from "@/components/inhouse/AdminShell";
+import EmptyState from "@/components/inhouse/EmptyState";
 import { Modal, useToast } from "@/components/inhouse/ui";
-import { ORDERS, ORDER_TONE, POOL_SPLIT, type Order } from "@/lib/admin";
-import { PEOPLE } from "@/lib/demo";
+import { ApiError } from "@/lib/api";
+import {
+  CONTRACT_STEPS,
+  RECEIPT_STATUSES,
+  RECEIPT_TONE,
+  canWriteFinance,
+  contractInput,
+  createContract,
+  createReceipt,
+  fetchContract,
+  fetchReceipts,
+  updateContract,
+  updateReceipt,
+  type Contract,
+  type ContractInput,
+  type ReceiptInput,
+  type ReceiptRow,
+  type ReceiptTotals,
+} from "@/lib/finance";
+import { useMe } from "@/lib/session";
 
 const won = (n: number) => n.toLocaleString("ko-KR");
 const digits = (s: string) => Number(s.replace(/[^0-9]/g, "")) || 0;
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const EMPTY_RECEIPT: ReceiptInput = { client: "", project: "", amount: 0, status: "청구 완료", date: "" };
 
 export default function AdminIncome() {
   const toast = useToast();
-  const [orders, setOrders] = useState<Order[]>(ORDERS);
-  const [modal, setModal] = useState<"" | "income" | "order">("");
-  const [income, setIncome] = useState({ orderId: "", date: today(), amount: "" });
-  const [order, setOrder] = useState({ project: "", client: "", pm: "", total: "" });
+  const { me } = useMe();
+  const canWrite = canWriteFinance(me?.roles);
+  const [rows, setRows] = useState<ReceiptRow[] | null>(null);
+  const [totals, setTotals] = useState<ReceiptTotals | null>(null);
+  const [error, setError] = useState<{ status: number; message: string } | null>(null);
+  const [busy, setBusy] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState<ReceiptInput>(EMPTY_RECEIPT);
+  const [contractOf, setContractOf] = useState("");
+  const req = useRef(0);
 
-  const open = orders.filter((o) => o.collected < o.total);
-  const amount = digits(income.amount);
-  const target = orders.find((o) => o.id === income.orderId);
-  const over = target ? amount > target.total - target.collected : false;
-  const close = () => setModal("");
+  const load = useCallback(async () => {
+    const id = ++req.current;
+    setError(null);
+    try {
+      const r = await fetchReceipts("", "");
+      if (id !== req.current) return;
+      setRows(r.rows);
+      setTotals(r.totals);
+    } catch (e) {
+      if (id === req.current) setError({ status: e instanceof ApiError ? e.status : 0, message: e instanceof Error ? e.message : "수금 내역을 불러오지 못했어요." });
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const projects = useMemo(() => [...new Set((rows ?? []).map((r) => r.project).filter(Boolean))], [rows]);
+  const clients = useMemo(() => [...new Set((rows ?? []).map((r) => r.client).filter(Boolean))], [rows]);
+  const canAdd = !!form.client.trim() && !!form.project.trim() && form.amount > 0 && !!form.date && !busy;
+
+  const changeStatus = async (r: ReceiptRow, status: string) => {
+    if (busy || r.status === status) return;
+    setBusy(r.id);
+    try {
+      await updateReceipt(r.id, { status });
+      toast.show(`'${r.project}' 수금 상태를 '${status}'(으)로 바꿨어요`);
+      load();
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "상태를 바꾸지 못했어요.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const add = async () => {
+    if (!canAdd) return;
+    setBusy("new");
+    try {
+      await createReceipt({ ...form, client: form.client.trim(), project: form.project.trim() });
+      toast.show(`${won(form.amount)}원 수금을 등록했어요`);
+      setForm(EMPTY_RECEIPT);
+      setAdding(false);
+      load();
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "수금을 등록하지 못했어요.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  if (error?.status === 403) {
+    return (
+      <AdminShell title="수주 · 입금">
+        <EmptyState icon="!" title="재정 권한이 있어야 볼 수 있어요" description="Admin · Leader · FA 역할만 수금 내역을 볼 수 있어요." />
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell
       title="수주 · 입금"
-      sub="입금을 등록하면 배분 기준(운영 60 · 적립 25 · 배당 15)대로 풀에 나눠 들어가요."
+      sub="외주 수금 내역과 프로젝트별 계약 정보를 관리해요."
       right={
-        <div className="wd-row">
-          <button type="button" className="wd-btn line" onClick={() => setModal("order")}>
-            + 수주 등록
-          </button>
-          <button type="button" className="wd-btn" onClick={() => setModal("income")}>
-            입금 등록
-          </button>
-        </div>
+        <button
+          type="button"
+          className="wd-btn"
+          disabled={!canWrite}
+          onClick={() => {
+            setForm({ ...EMPTY_RECEIPT, date: today() });
+            setAdding(true);
+          }}
+        >
+          + 수금 등록
+        </button>
       }
     >
-      <div className="wd-card" style={{ padding: "18px 22px 6px", overflowX: "auto" }}>
-        <table className="wd-table">
-          <thead>
-            <tr>
-              <th>수주 건</th>
-              <th>고객사</th>
-              <th>담당 PM</th>
-              <th>상태</th>
-              <th className="num">계약 / 수금</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr key={o.id}>
-                <td>
-                  <b>{o.project}</b>
-                </td>
-                <td>{o.client}</td>
-                <td>{o.pm}</td>
-                <td>
-                  <span className={`wd-badge ${ORDER_TONE[o.status]}`}>{o.status}</span>
-                </td>
-                <td className="num">
-                  {won(o.total)} / {won(o.collected)}
-                </td>
-              </tr>
+      {me && !canWrite && (
+        <div className="wd-banner warn" style={{ marginBottom: 18 }}>
+          <span className="ico" style={{ color: "#9a6b00" }}>!</span>
+          <div>
+            <b>수금·계약 등록은 Admin · FA만 할 수 있어요</b>
+            <p>Leader는 내역을 볼 수만 있어요.</p>
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="wd-banner danger" style={{ marginBottom: 18 }}>
+          <span className="ico">!</span>
+          <div>
+            <b>{error.message}</b>
+          </div>
+          <button type="button" className="wd-btn sm" onClick={load}>
+            다시 시도
+          </button>
+        </div>
+      )}
+      {!rows && !error && (
+        <p className="wd-t11 wd-faint" aria-busy="true">
+          수금 내역을 불러오는 중이에요…
+        </p>
+      )}
+      {rows && totals && (
+        <>
+          <div className="wd-grid g4" style={{ marginBottom: 18 }}>
+            {(
+              [
+                ["전체", totals.totalOrder, ""],
+                ["입금 완료", totals.paid, "green"],
+                ["청구 · 입금 대기", totals.pending, "orange"],
+                ["연체", totals.overdue, "red"],
+              ] as const
+            ).map(([label, value, tone]) => (
+              <div key={label} className="wd-card soft" style={{ padding: 16 }}>
+                <span className="wd-t9 wd-faint" style={{ display: "block" }}>{label}</span>
+                <b className={tone ? `wd-badge ${tone}` : ""} style={{ display: "inline-flex", marginTop: 6, fontSize: 14 }}>
+                  {won(value)}원
+                </b>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+          {rows.length === 0 ? (
+            <EmptyState icon="₩" title="아직 등록된 수금이 없어요" description="수금 등록으로 첫 내역을 추가해 보세요." />
+          ) : (
+            <div className="wd-card" style={{ padding: "18px 22px 6px", overflowX: "auto" }}>
+              <table className="wd-table">
+                <thead>
+                  <tr>
+                    <th>프로젝트</th>
+                    <th>고객사</th>
+                    <th>날짜</th>
+                    <th>상태</th>
+                    <th className="num">금액</th>
+                    <th className="num">계약</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.id}>
+                      <td>
+                        <b>{r.project || "-"}</b>
+                      </td>
+                      <td>{r.client}</td>
+                      <td>{r.date}</td>
+                      <td>
+                        {canWrite ? (
+                          <select
+                            className={`wd-badge ${RECEIPT_TONE[r.status] ?? ""}`}
+                            style={{ border: 0, font: "inherit", cursor: "pointer" }}
+                            aria-label={`${r.project} 수금 상태`}
+                            value={r.status}
+                            disabled={busy === r.id}
+                            onChange={(e) => changeStatus(r, e.target.value)}
+                          >
+                            {!RECEIPT_STATUSES.includes(r.status as (typeof RECEIPT_STATUSES)[number]) && <option value={r.status}>{r.status}</option>}
+                            {RECEIPT_STATUSES.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className={`wd-badge ${RECEIPT_TONE[r.status] ?? ""}`}>{r.status}</span>
+                        )}
+                      </td>
+                      <td className="num">{won(r.amount)}</td>
+                      <td className="num">
+                        {r.project && (
+                          <button type="button" className="wd-btn ghost sm" onClick={() => setContractOf(r.project)}>
+                            보기
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
 
-      {modal === "income" && (
+      {adding && (
         <Modal
-          eyebrow="INCOME"
-          title="입금 등록"
-          sub="통장에 들어온 금액을 적으면 풀 배분이 자동으로 계산돼요."
-          onClose={close}
+          eyebrow="RECEIPT"
+          title="수금 등록"
+          sub="청구하거나 입금된 외주 금액을 적어주세요."
+          onClose={() => setAdding(false)}
           footer={
             <>
-              <button type="button" className="wd-btn ghost" onClick={close}>
+              <button type="button" className="wd-btn ghost" onClick={() => setAdding(false)}>
                 취소
               </button>
-              <button type="submit" form="income-form" className="wd-btn" disabled={!target || !amount || over}>
-                등록하고 알림 보내기
+              <button type="submit" form="receipt-form" className="wd-btn" disabled={!canAdd} aria-busy={busy === "new"}>
+                {busy === "new" ? "등록 중…" : "등록"}
               </button>
             </>
           }
         >
           <form
-            id="income-form"
+            id="receipt-form"
             onSubmit={(e) => {
               e.preventDefault();
-              if (!target || !amount || over) return;
-              setOrders((os) =>
-                os.map((o) => {
-                  if (o.id !== target.id) return o;
-                  const collected = o.collected + amount;
-                  return { ...o, collected, status: collected >= o.total ? "수금 완료" : o.status };
-                }),
-              );
-              toast.show(`${won(amount)}원 입금을 반영하고 재정 알림을 보냈어요`);
-              setIncome({ orderId: "", date: today(), amount: "" });
-              close();
+              add();
             }}
           >
-            <label className="wd-field">
-              <span>수주 건</span>
-              <select className="wd-input" required value={income.orderId} onChange={(e) => setIncome({ ...income, orderId: e.target.value })}>
-                <option value="">선택해 주세요</option>
-                {open.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.project} · {o.client} (남은 {won(o.total - o.collected)}원)
-                  </option>
-                ))}
-              </select>
-            </label>
             <div className="wd-grid g2">
               <label className="wd-field">
-                <span>입금일</span>
-                <input className="wd-input" type="date" required value={income.date} onChange={(e) => setIncome({ ...income, date: e.target.value })} />
+                <span>프로젝트</span>
+                <input className="wd-input" required list="income-projects" value={form.project} onChange={(e) => setForm({ ...form, project: e.target.value })} placeholder="예: Book-on 앱 개발" />
+                <datalist id="income-projects">
+                  {projects.map((p) => (
+                    <option key={p} value={p} />
+                  ))}
+                </datalist>
+              </label>
+              <label className="wd-field">
+                <span>고객사</span>
+                <input className="wd-input" required list="income-clients" value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} />
+                <datalist id="income-clients">
+                  {clients.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              </label>
+            </div>
+            <div className="wd-grid g2">
+              <label className="wd-field">
+                <span>날짜</span>
+                <input className="wd-input" type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              </label>
+              <label className="wd-field">
+                <span>금액</span>
+                <input
+                  className="wd-input"
+                  inputMode="numeric"
+                  required
+                  value={form.amount ? won(form.amount) : ""}
+                  onChange={(e) => setForm({ ...form, amount: digits(e.target.value) })}
+                  placeholder="0"
+                />
+              </label>
+            </div>
+            <div className="wd-field" style={{ marginBottom: 0 }}>
+              <span>상태</span>
+              <div className="wd-seg" role="radiogroup" aria-label="상태">
+                {RECEIPT_STATUSES.map((s) => (
+                  <button type="button" key={s} role="radio" aria-checked={form.status === s} className={form.status === s ? "on" : ""} onClick={() => setForm({ ...form, status: s })}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {contractOf && <ContractEditor project={contractOf} canWrite={canWrite} onClose={() => setContractOf("")} onSaved={(m) => toast.show(m)} />}
+      {toast.node}
+    </AdminShell>
+  );
+}
+
+function ContractEditor({ project, canWrite, onClose, onSaved }: { project: string; canWrite: boolean; onClose: () => void; onSaved: (msg: string) => void }) {
+  const [original, setOriginal] = useState<Contract | null | undefined>(undefined);
+  const [form, setForm] = useState<ContractInput>(contractInput(null));
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const set = <K extends keyof ContractInput>(k: K, v: ContractInput[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    let alive = true;
+    fetchContract(project)
+      .then((c) => {
+        if (!alive) return;
+        setOriginal(c);
+        setForm(contractInput(c));
+      })
+      .catch((e) => alive && setError(e instanceof Error ? e.message : "계약 정보를 불러오지 못했어요."));
+    return () => {
+      alive = false;
+    };
+  }, [project]);
+
+  const isNew = original === null;
+  const overCollected = form.total > 0 && form.collected > form.total;
+
+  const save = async () => {
+    if (saving || overCollected || original === undefined) return;
+    setSaving(true);
+    setError("");
+    try {
+      if (isNew) {
+        await createContract(project, form);
+        onSaved("계약 정보를 등록했어요");
+      } else {
+        const before = contractInput(original);
+        const changes = Object.fromEntries(Object.entries(form).filter(([k, v]) => before[k as keyof ContractInput] !== v)) as Partial<ContractInput>;
+        if (Object.keys(changes).length === 0) {
+          onSaved("바뀐 내용이 없어요");
+          onClose();
+          return;
+        }
+        await updateContract(project, changes);
+        onSaved("계약 정보를 저장했어요");
+      }
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "계약 정보를 저장하지 못했어요.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      eyebrow="CONTRACT"
+      title={project}
+      sub={original === undefined ? "계약 정보를 불러오는 중이에요…" : isNew ? "아직 계약 정보가 없어요. 등록할 수 있어요." : undefined}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="wd-btn ghost" onClick={onClose}>
+            닫기
+          </button>
+          {canWrite && original !== undefined && (
+            <button type="submit" form="contract-form" className="wd-btn" disabled={saving || overCollected} aria-busy={saving}>
+              {saving ? "저장 중…" : isNew ? "계약 등록" : "저장"}
+            </button>
+          )}
+        </>
+      }
+    >
+      {error && (
+        <div className="wd-banner danger" role="alert" style={{ marginBottom: 14 }}>
+          <span className="ico">!</span>
+          <div>
+            <b>{error}</b>
+          </div>
+        </div>
+      )}
+      {original !== undefined && (
+        <form
+          id="contract-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save();
+          }}
+        >
+          <fieldset disabled={!canWrite} style={{ border: 0, padding: 0, margin: 0 }}>
+            <div className="wd-grid g2">
+              <label className="wd-field">
+                <span>담당 PM</span>
+                <input className="wd-input" value={form.pm} onChange={(e) => set("pm", e.target.value)} />
+              </label>
+              <label className="wd-field">
+                <span>계약일</span>
+                <input className="wd-input" type="date" value={form.signed} onChange={(e) => set("signed", e.target.value)} />
+              </label>
+            </div>
+            <div className="wd-grid g2">
+              <label className="wd-field">
+                <span>계약 금액</span>
+                <input className="wd-input" inputMode="numeric" value={form.total ? won(form.total) : ""} onChange={(e) => set("total", digits(e.target.value))} placeholder="0" />
               </label>
               <label className="wd-field">
                 <span>
-                  금액 {over && <em style={{ color: "#f04452" }}>남은 금액보다 커요</em>}
+                  수금한 금액 {overCollected && <em style={{ color: "#f04452" }}>계약 금액보다 커요</em>}
                 </span>
-                <input className="wd-input" inputMode="numeric" required value={amount ? won(amount) : ""} onChange={(e) => setIncome({ ...income, amount: e.target.value })} placeholder="0" />
+                <input className="wd-input" inputMode="numeric" value={form.collected ? won(form.collected) : ""} onChange={(e) => set("collected", digits(e.target.value))} placeholder="0" />
               </label>
             </div>
-            <div className="wd-grid g3">
-              {POOL_SPLIT.map(([name, rate, tone]) => (
-                <div key={name} className="wd-card soft" style={{ padding: 14 }}>
-                  <span className="wd-t9 wd-faint" style={{ display: "block" }}>
-                    {name} · {Math.round(rate * 100)}%
-                  </span>
-                  <b className={`wd-badge ${tone}`} style={{ display: "inline-flex", marginTop: 6 }}>
-                    {won(Math.round(amount * rate))}원
-                  </b>
-                </div>
-              ))}
+            <div className="wd-field">
+              <span>
+                지금 단계 <em>앞 단계는 끝난 것으로 보여요</em>
+              </span>
+              <div className="wd-seg" role="radiogroup" aria-label="진행 단계">
+                {CONTRACT_STEPS.map((s, i) => (
+                  <button type="button" key={s} role="radio" aria-checked={form.step === i} className={form.step === i ? "on" : ""} onClick={() => set("step", i)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
-          </form>
-        </Modal>
-      )}
-
-      {modal === "order" && (
-        <Modal
-          eyebrow="ORDER"
-          title="수주 등록"
-          onClose={close}
-          footer={
-            <>
-              <button type="button" className="wd-btn ghost" onClick={close}>
-                취소
-              </button>
-              <button type="submit" form="order-form" className="wd-btn">
-                등록
-              </button>
-            </>
-          }
-        >
-          <form
-            id="order-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setOrders((os) => [{ id: `o-${Date.now()}`, project: order.project, client: order.client, pm: order.pm, status: "제작", total: digits(order.total), collected: 0 }, ...os]);
-              toast.show("수주를 등록했어요");
-              setOrder({ project: "", client: "", pm: "", total: "" });
-              close();
-            }}
-          >
-            <label className="wd-field">
-              <span>수주 건</span>
-              <input className="wd-input" required value={order.project} onChange={(e) => setOrder({ ...order, project: e.target.value })} placeholder="예: 브랜드 사이트 리뉴얼" />
-            </label>
             <div className="wd-grid g2">
               <label className="wd-field">
-                <span>고객사</span>
-                <input className="wd-input" required value={order.client} onChange={(e) => setOrder({ ...order, client: e.target.value })} />
+                <span>참여 인원</span>
+                <input className="wd-input" value={form.staff} onChange={(e) => set("staff", e.target.value)} placeholder="예: iOS 2 · 디자인 1" />
               </label>
               <label className="wd-field">
-                <span>담당 PM</span>
-                <select className="wd-input" required value={order.pm} onChange={(e) => setOrder({ ...order, pm: e.target.value })}>
-                  <option value="">선택해 주세요</option>
-                  {PEOPLE.map((p) => (
-                    <option key={p.id} value={p.name}>
-                      {p.name} · {p.dept}
-                    </option>
-                  ))}
-                </select>
+                <span>배분</span>
+                <input className="wd-input" value={form.split} onChange={(e) => set("split", e.target.value)} placeholder="예: 운영 60 · 적립 25 · 배당 15" />
               </label>
             </div>
             <label className="wd-field" style={{ marginBottom: 0 }}>
-              <span>계약 금액</span>
-              <input className="wd-input" inputMode="numeric" required value={digits(order.total) ? won(digits(order.total)) : ""} onChange={(e) => setOrder({ ...order, total: e.target.value })} placeholder="0" />
+              <span>다음 할 일</span>
+              <input className="wd-input" value={form.next} onChange={(e) => set("next", e.target.value)} placeholder="예: 2차 중도금 청구 (12.10)" />
             </label>
-          </form>
-        </Modal>
+          </fieldset>
+        </form>
       )}
-      {toast.node}
-    </AdminShell>
+    </Modal>
   );
 }
