@@ -10,6 +10,7 @@ import { profileKey } from "@/lib/inhouse";
 import NotificationBell from "./NotificationBell";
 import ProfileAvatar from "./ProfileAvatar";
 import { PROFILE_EVENT, type Profile } from "./useProfilePhoto";
+import { logout } from "@/lib/api";
 
 const MENU: [string, string][] = [
   ["홈", "/inhouse"],
@@ -138,6 +139,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
                 role="menuitem"
                 onClick={() => {
                   setMenuOpen(false);
+                  logout();
                   router.replace("/inhouse/login");
                 }}
               >

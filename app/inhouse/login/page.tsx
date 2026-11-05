@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/inhouse/ui";
 import { DEPARTMENTS } from "@/lib/demo";
+import { login, requestPasswordReset, requestSignup } from "@/lib/api";
 
 type Mode = "login" | "request";
 
 const EMAIL_KEY = "native-inhouse-email";
 
-// 로그인은 형식상 화면만 두고, 제출하면 바로 인하우스로 들어간다
+// POST /auth/login · /auth/signup-requests · /auth/password-reset-requests
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
@@ -24,6 +25,9 @@ export default function LoginPage() {
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
+  const [error, setError] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(EMAIL_KEY);
@@ -47,20 +51,32 @@ export default function LoginPage() {
       <section className="pf-login-center">
         <form
           className="pf-login-form"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (remember) localStorage.setItem(EMAIL_KEY, email);
-            else localStorage.removeItem(EMAIL_KEY);
-            if (mode === "request") {
-              if (!dept) {
-                setMessage("소속 부서를 선택해주세요.");
-                return;
-              }
-              setMessage(`${dept} 소속으로 접근 요청을 보냈어요. 승인 후 인하우스에 들어올 수 있습니다.`);
-              setMode("login");
+            if (busy) return;
+            setError("");
+            if (mode === "request" && !dept) {
+              setError("소속 부서를 선택해주세요.");
               return;
             }
-            router.replace("/inhouse");
+            setBusy(true);
+            try {
+              if (mode === "request") {
+                await requestSignup({ email: email.trim(), name: name.trim(), dept, password });
+                setMessage(`${dept} 소속으로 접근 요청을 보냈어요. 승인 후 인하우스에 들어올 수 있습니다.`);
+                setPassword("");
+                setMode("login");
+                return;
+              }
+              if (remember) localStorage.setItem(EMAIL_KEY, email);
+              else localStorage.removeItem(EMAIL_KEY);
+              await login(email, password, true);
+              router.replace("/inhouse");
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "요청을 처리하지 못했어요.");
+            } finally {
+              setBusy(false);
+            }
           }}
         >
           <div className="pf-login-logo">
@@ -134,6 +150,7 @@ export default function LoginPage() {
                 onClick={() => {
                   setResetEmail(email);
                   setResetSent(false);
+                  setResetError("");
                   setResetOpen(true);
                 }}
               >
@@ -152,7 +169,17 @@ export default function LoginPage() {
             </div>
           </div>
           )}
-          <button className="pf-login-submit">{mode === "login" ? "로그인" : "가입 요청 보내기"}</button>
+          {error && (
+            <div className="wd-scope" style={{ marginTop: 16 }}>
+              <div className="wd-banner danger" role="alert" style={{ padding: "12px 14px" }}>
+                <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>!</span>
+                <p style={{ margin: 0 }}>{error}</p>
+              </div>
+            </div>
+          )}
+          <button className="pf-login-submit" disabled={busy} aria-busy={busy}>
+            {busy ? "잠시만요…" : mode === "login" ? "로그인" : "가입 요청 보내기"}
+          </button>
           <div className="pf-login-switch">
             {mode === "login" ? "처음이신가요?" : "이미 계정이 있나요?"}
             <button
@@ -160,6 +187,7 @@ export default function LoginPage() {
               onClick={() => {
                 setMode(mode === "login" ? "request" : "login");
                 setMessage("");
+                setError("");
               }}
             >
               {mode === "login" ? "가입 요청하기" : "로그인하기"}
@@ -184,8 +212,8 @@ export default function LoginPage() {
                 <button type="button" className="wd-btn ghost" onClick={() => setResetOpen(false)}>
                   취소
                 </button>
-                <button type="submit" form="reset-form" className="wd-btn">
-                  재설정 링크 보내기
+                <button type="submit" form="reset-form" className="wd-btn" disabled={busy}>
+                  {busy ? "보내는 중…" : "재설정 링크 보내기"}
                 </button>
               </>
             )
@@ -198,9 +226,20 @@ export default function LoginPage() {
           ) : (
             <form
               id="reset-form"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                setResetSent(true);
+                if (busy) return;
+                setResetError("");
+                setBusy(true);
+                try {
+                  // 서버는 가입 여부와 상관없이 같은 응답을 준다
+                  await requestPasswordReset(resetEmail);
+                  setResetSent(true);
+                } catch (err) {
+                  setResetError(err instanceof Error ? err.message : "메일을 보내지 못했어요.");
+                } finally {
+                  setBusy(false);
+                }
               }}
             >
               <label className="wd-field">
@@ -219,6 +258,12 @@ export default function LoginPage() {
                 <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>i</span>
                 <p style={{ margin: 0 }}>링크는 30분 동안 유효해요.</p>
               </div>
+              {resetError && (
+                <div className="wd-banner danger" role="alert" style={{ padding: "12px 14px", marginTop: 8 }}>
+                  <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>!</span>
+                  <p style={{ margin: 0 }}>{resetError}</p>
+                </div>
+              )}
             </form>
           )}
         </Modal>
