@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { ME, PROJECTS } from "@/lib/demo";
+import { PROJECTS } from "@/lib/demo";
+import { useMe } from "@/lib/session";
 import { Av, Eyebrow } from "./ui";
 import WdPage from "./WdPage";
 
@@ -17,16 +18,17 @@ const NAV: [string, string][] = [
 
 export default function MyShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { me } = useMe();
   return (
     <WdPage>
       <div className="wd-wrap wd-pb pf-my-shell">
         <aside>
           <div className="wd-row" style={{ gap: 10, padding: "0 12px 20px" }}>
-            <Av name={ME.name} tone="dark" />
+            <Av name={me?.name ?? ""} tone="dark" />
             <div>
-              <b className="wd-t12">{ME.name}</b>
+              <b className="wd-t12">{me?.name}</b>
               <span className="wd-t9 wd-faint" style={{ display: "block" }}>
-                {ME.dept} · iOS
+                {[me?.dept, me?.major].filter(Boolean).join(" · ") || "소속 미등록"}
               </span>
             </div>
           </div>

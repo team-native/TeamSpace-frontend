@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { InhouseData } from "@/lib/inhouse";
-import { ME } from "@/lib/demo";
+import { useMe } from "@/lib/session";
 import PortalHeader from "./PortalHeader";
 
 type Props = {
@@ -14,10 +14,8 @@ type Props = {
 };
 
 export default function PortalShell({ data, error, active, children }: Props) {
-  const member = data?.member ?? {
-    name: ME.name,
-    email: ME.email,
-  };
+  const { me } = useMe();
+  const member = { name: me?.name ?? data?.member.name ?? "", email: me?.email ?? data?.member.email ?? "" };
 
   return (
     <main className={`pf-shell ${active ? `pf-${active}` : ""}`}>

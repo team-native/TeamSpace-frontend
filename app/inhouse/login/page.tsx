@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/inhouse/ui";
 import { DEPARTMENTS } from "@/lib/demo";
 import { login, requestPasswordReset, requestSignup } from "@/lib/api";
+import { loadMe, nextPath } from "@/lib/session";
 
 type Mode = "login" | "request";
 
@@ -71,7 +72,8 @@ export default function LoginPage() {
               if (remember) localStorage.setItem(EMAIL_KEY, email);
               else localStorage.removeItem(EMAIL_KEY);
               await login(email, password, true);
-              router.replace("/inhouse");
+              await loadMe(true);
+              router.replace(nextPath(window.location.search));
             } catch (err) {
               setError(err instanceof Error ? err.message : "요청을 처리하지 못했어요.");
             } finally {
