@@ -1,44 +1,106 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MyShell, { MyTitle } from "@/components/inhouse/MyShell";
 import ProfileAvatar from "@/components/inhouse/ProfileAvatar";
 import { useToast } from "@/components/inhouse/ui";
 import { PROFILE_EVENT, cropToPortrait, type Profile } from "@/components/inhouse/useProfilePhoto";
-import { DEPARTMENTS, ME } from "@/lib/demo";
+import { DEPARTMENTS } from "@/lib/demo";
 import { profileKey } from "@/lib/inhouse";
+import { updateProfile, type ProfileInput } from "@/lib/account";
+import { loadMe, useMe, type Me } from "@/lib/session";
 
 type FullProfile = Profile & { bio: string; interests: string[]; cohort: string };
+
+const fromMe = (me: Me): FullProfile => ({
+  name: me.name ?? "",
+  email: me.email ?? "",
+  department: me.dept ?? "",
+  major: me.major ?? "",
+  github: me.github ?? "",
+  photo: me.photo ?? "",
+  bio: me.bio ?? "",
+  interests: me.interests ?? [],
+  cohort: me.cohort ?? "",
+});
+
+// 서버에는 바뀐 항목만 보낸다
+function diff(a: FullProfile, b: FullProfile): Partial<ProfileInput> {
+  const out: Partial<ProfileInput> = {};
+  if (a.name.trim() !== b.name) out.name = a.name.trim();
+  if (a.department !== b.department) out.dept = a.department;
+  if (a.major.trim() !== b.major) out.major = a.major.trim();
+  if (a.cohort.trim() !== b.cohort) out.cohort = a.cohort.trim();
+  if (a.github.trim() !== b.github) out.github = a.github.trim();
+  if (a.photo !== b.photo) out.photo = a.photo;
+  if (a.bio.trim() !== b.bio) out.bio = a.bio.trim();
+  if (a.interests.join("\u0000") !== b.interests.join("\u0000")) out.interests = a.interests;
+  return out;
+}
 
 const MAX_BIO = 60;
 const MAX_TAGS = 5;
 
 export default function ProfilePage() {
   const toast = useToast();
-  const defaults: FullProfile = {
-    name: ME.name,
-    email: ME.email,
-    department: ME.dept,
-    major: "iOS",
-    github: ME.github,
-    photo: "",
-    bio: ME.bio,
-    interests: ME.interests,
-    cohort: "25기 · 25038",
-  };
-  const [form, setForm] = useState<FullProfile>(defaults);
+  const { me } = useMe();
+  const saved = useMemo(() => (me ? fromMe(me) : null), [me]);
+  const [form, setForm] = useState<FullProfile | null>(null);
   const [tag, setTag] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(profileKey(ME.email));
-      if (saved) setForm((f) => ({ ...f, ...JSON.parse(saved) }));
-    } catch {
-      // 저장된 프로필이 깨졌으면 기본값 사용
-    }
-  }, []);
+    if (saved) setForm((f) => f ?? saved);
+  }, [saved]);
 
-  const set = <K extends keyof FullProfile>(k: K, v: FullProfile[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const departments = useMemo(
+    () => Array.from(new Set([...(saved?.department ? [saved.department] : []), ...DEPARTMENTS])),
+    [saved],
+  );
+
+  if (!form || !saved) {
+    return (
+      <MyShell>
+        <p className="wd-t11 wd-faint" aria-busy="true">
+          프로필을 불러오는 중이에요…
+        </p>
+      </MyShell>
+    );
+  }
+
+  const changes = diff(form, saved);
+  const dirty = Object.keys(changes).length > 0;
+
+  const save = async () => {
+    if (saving) return;
+    if (!dirty) {
+      toast.show("바뀐 내용이 없어요");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const next = await updateProfile(changes);
+      await loadMe(true);
+      const profile = fromMe(next);
+      setForm(profile);
+      // 예전에 기기에만 저장한 프로필은 지우고 서버 값으로 머리글을 맞춘다
+      try {
+        localStorage.removeItem(profileKey(profile.email));
+      } catch {
+        // 무시
+      }
+      window.dispatchEvent(new CustomEvent(PROFILE_EVENT, { detail: { email: profile.email, profile } }));
+      toast.show("프로필을 저장했어요");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "프로필을 저장하지 못했어요.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const set = <K extends keyof FullProfile>(k: K, v: FullProfile[K]) => setForm((f) => (f ? { ...f, [k]: v } : f));
   const addTag = () => {
     const t = tag.trim().replace(/^#/, "");
     if (t && !form.interests.includes(t) && form.interests.length < MAX_TAGS) set("interests", [...form.interests, t]);
@@ -50,12 +112,27 @@ export default function ProfilePage() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          localStorage.setItem(profileKey(ME.email), JSON.stringify(form));
-          window.dispatchEvent(new CustomEvent(PROFILE_EVENT, { detail: { email: ME.email, profile: form } }));
-          toast.show("프로필을 저장했어요");
+          save();
         }}
       >
-        <MyTitle eyebrow="PROFILE" title="프로필" sub="팀원 소개와 결재 화면에 보이는 정보예요." right={<button type="submit" className="wd-btn">저장</button>} />
+        <MyTitle
+          eyebrow="PROFILE"
+          title="프로필"
+          sub="팀원 소개와 결재 화면에 보이는 정보예요."
+          right={
+            <button type="submit" className="wd-btn" disabled={saving || !dirty} aria-busy={saving}>
+              {saving ? "저장 중…" : "저장"}
+            </button>
+          }
+        />
+        {error && (
+          <div className="wd-banner danger" role="alert" style={{ marginBottom: 18 }}>
+            <span className="ico">!</span>
+            <div>
+              <b>{error}</b>
+            </div>
+          </div>
+        )}
         <div className="wd-card" style={{ padding: 28 }}>
           <div className="wd-row" style={{ gap: 18, marginBottom: 26 }}>
             <ProfileAvatar src={form.photo} className="large" />
@@ -69,7 +146,14 @@ export default function ProfilePage() {
                     style={{ display: "none" }}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
-                      if (file) set("photo", await cropToPortrait(file));
+                      e.target.value = "";
+                      if (!file) return;
+                      try {
+                        // 서버에 그대로 저장되니 작게 줄여서 보낸다
+                        set("photo", await cropToPortrait(file, 320, 0.8));
+                      } catch (err) {
+                        toast.show(err instanceof Error ? err.message : "사진을 읽지 못했어요.");
+                      }
                     }}
                   />
                 </label>
@@ -96,7 +180,8 @@ export default function ProfilePage() {
             <label className="wd-field">
               <span>부서</span>
               <select className="wd-input" value={form.department} onChange={(e) => set("department", e.target.value)}>
-                {DEPARTMENTS.map((d) => (
+                {!form.department && <option value="">선택해 주세요</option>}
+                {departments.map((d) => (
                   <option key={d}>{d}</option>
                 ))}
               </select>
