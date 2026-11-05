@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { REPORTS, isAdmin, pendingIncome, waitingInquiries } from "@/lib/admin";
-import { ME } from "@/lib/demo";
+import { REPORTS, pendingIncome, waitingInquiries } from "@/lib/admin";
+import { isStaff, useMe } from "@/lib/session";
 import EmptyState from "./EmptyState";
 import { Eyebrow } from "./ui";
 import WdPage from "./WdPage";
@@ -23,16 +23,17 @@ const NAV: [string, string, number?][] = [
 
 const section = (href: string) => href.split("/").slice(0, 4).join("/");
 
-// 운영 관리 공통 틀: 왼쪽 메뉴 + 제목 영역. Leader · NativeOps · FA 만 들어올 수 있음
+// 운영 관리 공통 틀: 왼쪽 메뉴 + 제목 영역. 서버 역할 Admin · Leader · FA 만 들어올 수 있음
 export default function AdminShell({ title, sub, right, children }: { title: string; sub?: string; right?: ReactNode; children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { me } = useMe();
 
-  if (!isAdmin(ME.dept)) {
+  if (!isStaff(me)) {
     return (
       <WdPage>
         <div className="wd-wrap wd-pb" style={{ paddingTop: 80 }}>
-          <EmptyState icon="!" title="운영진만 볼 수 있어요" description="Leader · NativeOps · FA 부서에게만 열려 있어요." actionLabel="홈으로" onAction={() => router.push("/inhouse")} />
+          <EmptyState icon="!" title="운영진만 볼 수 있어요" description="관리자 · Leader · FA 역할에게만 열려 있어요." actionLabel="홈으로" onAction={() => router.push("/inhouse")} />
         </div>
       </WdPage>
     );

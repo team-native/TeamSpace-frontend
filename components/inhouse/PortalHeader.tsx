@@ -4,13 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { isAdmin } from "@/lib/admin";
-import { ME } from "@/lib/demo";
 import { profileKey } from "@/lib/inhouse";
 import NotificationBell from "./NotificationBell";
 import ProfileAvatar from "./ProfileAvatar";
 import { PROFILE_EVENT, type Profile } from "./useProfilePhoto";
-import { logout } from "@/lib/api";
+import { isStaff, signOut, useMe } from "@/lib/session";
 
 const MENU: [string, string][] = [
   ["홈", "/inhouse"],
@@ -35,13 +33,14 @@ const isActive = (pathname: string, href: string) =>
 export default function PortalHeader({ member }: { member: { name: string; email: string } }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { me } = useMe();
   const defaults: Profile = {
-    name: member.name,
-    email: member.email,
-    department: "Core Platform",
-    major: "iOS",
-    github: "",
-    photo: "",
+    name: me?.name ?? member.name,
+    email: me?.email ?? member.email,
+    department: me?.dept ?? "",
+    major: me?.major ?? "",
+    github: me?.github ?? "",
+    photo: me?.photo ?? "",
   };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -51,7 +50,8 @@ export default function PortalHeader({ member }: { member: { name: string; email
   useEffect(() => {
     try {
       const saved = localStorage.getItem(profileKey(member.email));
-      const next = saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
+      // 이름 · 이메일은 서버 값이 우선, 사진 등은 프로필 화면이 서버에 붙기 전까지 기기에 저장한 값 사용
+      const next = saved ? { ...defaults, ...JSON.parse(saved), name: defaults.name, email: defaults.email } : defaults;
       setProfile(next);
     } catch {
       setProfile(defaults);
@@ -63,7 +63,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
     window.addEventListener(PROFILE_EVENT, onUpdate);
     return () => window.removeEventListener(PROFILE_EVENT, onUpdate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [member.email, member.name]);
+  }, [member.email, member.name, me]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -125,7 +125,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
                   </em>
                 </div>
               </div>
-              {(isAdmin(ME.dept) ? [...PROFILE_MENU, ADMIN_MENU] : PROFILE_MENU).map(([title, desc, href]) => (
+              {(isStaff(me) ? [...PROFILE_MENU, ADMIN_MENU] : PROFILE_MENU).map(([title, desc, href]) => (
                 <Link key={href} className="pf-profile-edit" role="menuitem" href={href} onClick={() => setMenuOpen(false)}>
                   <span>
                     <b>{title}</b>
@@ -139,7 +139,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
                 role="menuitem"
                 onClick={() => {
                   setMenuOpen(false);
-                  logout();
+                  signOut();
                   router.replace("/inhouse/login");
                 }}
               >
