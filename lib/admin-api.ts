@@ -134,3 +134,12 @@ export async function fetchAdminCounts(): Promise<{ inquiries?: number; reports?
     income: i.status === "fulfilled" ? i.value.length : undefined,
   };
 }
+
+export const answerInquiry = (id: string, text: string) =>
+  api<{ id: string; status: string; answer: { who: string; at: string; text: string } }>(`/admin/inquiries/${encodeURIComponent(id)}/answer`, {
+    method: "POST",
+    body: { text },
+  });
+
+export const setInquiryStatus = (id: string, status: string) =>
+  api<{ id: string; status: string }>(`/admin/inquiries/${encodeURIComponent(id)}`, { method: "PATCH", body: { status } });
