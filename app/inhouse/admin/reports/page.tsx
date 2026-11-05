@@ -17,7 +17,7 @@ import {
   type ReportGroup,
 } from "@/lib/admin-api";
 import type { PostDetail } from "@/lib/board";
-import type { Tone } from "@/lib/demo";
+import type { Tone } from "@/lib/shared";
 
 const ACTIONS: [ReportDecision, string, string, Tone][] = [
   ["숨김", "글 숨김", "작성자에게만 보이고 다른 사람에겐 안 보여요", "orange"],

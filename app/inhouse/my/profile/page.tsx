@@ -5,7 +5,7 @@ import MyShell, { MyTitle } from "@/components/inhouse/MyShell";
 import ProfileAvatar from "@/components/inhouse/ProfileAvatar";
 import { useToast } from "@/components/inhouse/ui";
 import { PROFILE_EVENT, cropToPortrait, type Profile } from "@/components/inhouse/useProfilePhoto";
-import { DEPARTMENTS } from "@/lib/demo";
+import { DEPARTMENTS } from "@/lib/shared";
 import { profileKey } from "@/lib/inhouse";
 import { updateProfile, type ProfileInput } from "@/lib/account";
 import { loadMe, useMe, type Me } from "@/lib/session";

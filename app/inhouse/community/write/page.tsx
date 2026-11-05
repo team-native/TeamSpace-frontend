@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import CommunityShell from "@/components/inhouse/CommunityShell";
 import { Eyebrow, useToast } from "@/components/inhouse/ui";
 import { WRITE_CATEGORIES, createPost, fetchPost, updatePost, type PostInput } from "@/lib/board";
-import { loadLocal, saveLocal } from "@/lib/demo";
+import { loadLocal, saveLocal } from "@/lib/shared";
 import { isAdminRole, useMe } from "@/lib/session";
 
 const DRAFT_KEY = "native-inhouse-post-draft";

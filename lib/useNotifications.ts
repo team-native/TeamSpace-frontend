@@ -4,7 +4,7 @@
 // 헤더 벨과 알림 화면이 같은 목록 · 읽음 상태를 보도록 한곳에서 불러 나눠 쓴다
 import { useCallback, useEffect, useState } from "react";
 import { api, hasSession } from "./api";
-import { loadLocal, saveLocal, type NotiKind, type Tone } from "./demo";
+import { loadLocal, saveLocal, type NotiKind, type Tone } from "./shared";
 
 export type NotiWhen = "오늘" | "이번 주" | "이전";
 export type Noti = {

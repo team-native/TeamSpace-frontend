@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, toAttachment, type Attachment } from "./api";
 import type { InhouseData, Pool, PoolId, Receipt } from "./inhouse";
-import type { Tone } from "./demo";
+import type { Tone } from "./shared";
 
 type Raw = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === "string" ? v : v === undefined || v === null ? "" : String(v));

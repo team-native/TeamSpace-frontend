@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import WdPage from "@/components/inhouse/WdPage";
 import { Eyebrow } from "@/components/inhouse/ui";
-import type { NotiKind } from "@/lib/demo";
+import type { NotiKind } from "@/lib/shared";
 import { useNotifications, type Noti } from "@/lib/useNotifications";
 import EmptyState from "@/components/inhouse/EmptyState";
 

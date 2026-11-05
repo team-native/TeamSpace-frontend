@@ -1,6 +1,6 @@
 // 전자결재: /approvals · approve · reject · cancel · comments · /uploads · /projects
 import { api, toAttachments, type Attachment } from "./api";
-import type { Tone } from "./demo";
+import type { Tone } from "./shared";
 
 export type ApprovalStatus = "작성 중" | "결재 대기" | "검토 중" | "승인" | "반려" | "취소";
 export const APPROVAL_STATUSES: ApprovalStatus[] = ["작성 중", "결재 대기", "검토 중", "승인", "반려", "취소"];

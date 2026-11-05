@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/inhouse/ui";
-import { DEPARTMENTS } from "@/lib/demo";
+import { DEPARTMENTS } from "@/lib/shared";
 import { login, requestPasswordReset, requestSignup } from "@/lib/api";
 import { loadMe, nextPath } from "@/lib/session";
 
