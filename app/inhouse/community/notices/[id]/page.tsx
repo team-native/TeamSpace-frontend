@@ -9,12 +9,14 @@ import EmptyState from "@/components/inhouse/EmptyState";
 import { useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
 import { confirmNotice, fetchNotice, type Notice } from "@/lib/notices";
+import { isStaff, useMe } from "@/lib/session";
 
 // GET /notices/{id} · POST /notices/{id}/confirm
 export default function NoticePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
+  const { me } = useMe();
   const [notice, setNotice] = useState<Notice | null | undefined>(undefined);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
@@ -123,6 +125,11 @@ export default function NoticePage() {
                 {notice.confirmedByMe ? "✓ 확인 완료" : sending ? "보내는 중…" : "확인했어요"}
               </button>
             </section>
+          )}
+          {isStaff(me) && (
+            <Link href={`/inhouse/admin/notices/new?id=${notice.id}`} className="wd-btn line full">
+              공지 수정
+            </Link>
           )}
           <Link href="/inhouse/community/notices" className="wd-btn ghost full">
             공지 목록
