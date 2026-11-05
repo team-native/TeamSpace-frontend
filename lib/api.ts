@@ -96,10 +96,10 @@ async function refreshTokens(): Promise<boolean> {
   return refreshing;
 }
 
-type Options = { method?: string; body?: unknown; auth?: boolean; query?: Record<string, string | number | boolean | undefined | null> };
+type Options = { method?: string; body?: unknown; form?: FormData; auth?: boolean; query?: Record<string, string | number | boolean | undefined | null> };
 
 export async function api<T>(path: string, opts: Options = {}): Promise<T> {
-  const { method = "GET", body, auth = true, query } = opts;
+  const { method = "GET", body, form, auth = true, query } = opts;
   const qs = query
     ? new URLSearchParams(
         Object.entries(query)
@@ -111,10 +111,10 @@ export async function api<T>(path: string, opts: Options = {}): Promise<T> {
 
   const send = () => {
     const headers: Record<string, string> = {};
-    if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (body !== undefined && !form) headers["Content-Type"] = "application/json";
     const token = auth ? read(ACCESS_KEY) : null;
     if (token) headers.Authorization = `Bearer ${token}`;
-    return fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+    return fetch(url, { method, headers, body: form ?? (body === undefined ? undefined : JSON.stringify(body)) });
   };
 
   let res: Response;
