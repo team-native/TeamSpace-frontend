@@ -1,103 +1,256 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MyShell, { MyTitle } from "@/components/inhouse/MyShell";
 import { useToast } from "@/components/inhouse/ui";
-import { EVENTS, loadLocal, saveLocal, type CalEvent } from "@/lib/demo";
+import {
+  REMINDER_LABELS,
+  RSVP_OPTIONS,
+  SCOPES,
+  fetchEvents,
+  fetchReminders,
+  monthKey,
+  saveReminders,
+  sendRsvp,
+  whenText,
+  type CalEvent,
+  type Reminders,
+  type RsvpAnswer,
+} from "@/lib/events";
 
-const KEY = "native-inhouse-rsvp";
-const TODAY = 24;
-const RSVP = ["참석", "불참", "미정"] as const;
-
-// 데모는 2026년 10월 고정 (1일이 목요일)
-const LEAD_DAYS = [27, 28, 29, 30];
+const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 
 export default function CalendarPage() {
   const toast = useToast();
-  const [selected, setSelected] = useState<CalEvent>(EVENTS.find((e) => e.rsvp) ?? EVENTS[0]);
-  const [answer, setAnswer] = useState<string>("");
+  const now = new Date();
+  const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() });
+  const [scope, setScope] = useState<string>("전체");
+  const [events, setEvents] = useState<CalEvent[] | null>(null);
+  const [error, setError] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [why, setWhy] = useState("");
+  const [sending, setSending] = useState(false);
+  const [reminders, setReminders] = useState<Reminders | null>(null);
+  const req = useRef(0);
+  const remReq = useRef(0);
+
+  const month = monthKey(ym.y, ym.m);
+
+  const load = useCallback(async () => {
+    const id = ++req.current;
+    setError("");
+    setEvents(null);
+    try {
+      const list = await fetchEvents(month, scope);
+      if (id !== req.current) return;
+      setEvents(list);
+      // 응답이 필요한 일정을 먼저 열어 둔다
+      setSelectedId((cur) => (cur && list.some((e) => e.id === cur) ? cur : (list.find((e) => e.rsvp && !e.myRsvp) ?? list[0])?.id ?? null));
+    } catch (e) {
+      if (id === req.current) setError(e instanceof Error ? e.message : "일정을 불러오지 못했어요.");
+    }
+  }, [month, scope]);
 
   useEffect(() => {
-    const saved = loadLocal<Record<string, { answer: string; why: string }>>(KEY, {});
-    setAnswer(saved[selected.title]?.answer ?? "");
-    setWhy(saved[selected.title]?.why ?? "");
-  }, [selected]);
+    load();
+  }, [load]);
 
-  const respond = (a: string) => {
-    setAnswer(a);
-    saveLocal(KEY, { ...loadLocal(KEY, {}), [selected.title]: { answer: a, why } });
-    toast.show(`'${a}'으로 응답했어요`);
+  const selected = events?.find((e) => e.id === selectedId) ?? null;
+
+  useEffect(() => {
+    setWhy("");
+    setReminders(null);
+    if (!selectedId) return;
+    const id = ++remReq.current;
+    fetchReminders(selectedId)
+      .then((r) => id === remReq.current && setReminders(r))
+      .catch(() => {});
+  }, [selectedId]);
+
+  const cells = useMemo(() => {
+    const lead = new Date(ym.y, ym.m, 1).getDay();
+    const days = new Date(ym.y, ym.m + 1, 0).getDate();
+    const prevDays = new Date(ym.y, ym.m, 0).getDate();
+    return {
+      lead: Array.from({ length: lead }, (_, i) => prevDays - lead + 1 + i),
+      days: Array.from({ length: days }, (_, i) => i + 1),
+    };
+  }, [ym]);
+
+  const isThisMonth = ym.y === now.getFullYear() && ym.m === now.getMonth();
+  const shift = (d: number) => setYm(({ y, m }) => ({ y: m + d < 0 ? y - 1 : m + d > 11 ? y + 1 : y, m: (m + d + 12) % 12 }));
+
+  const respond = async (answer: RsvpAnswer) => {
+    if (!selected || sending) return;
+    setSending(true);
+    try {
+      await sendRsvp(selected.id, answer, answer === "불참" ? why : undefined);
+      setEvents((list) =>
+        list?.map((e) => {
+          if (e.id !== selected.id) return e;
+          const delta = (answer === "참석" ? 1 : 0) - (e.myRsvp === "참석" ? 1 : 0);
+          return { ...e, myRsvp: answer, rsvpCount: Math.max(0, e.rsvpCount + delta) };
+        }) ?? null,
+      );
+      toast.show(`'${answer}'으로 응답했어요`);
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "응답을 저장하지 못했어요.");
+    } finally {
+      setSending(false);
+    }
   };
 
-  const counts = { 참석: 12 + (answer === "참석" ? 1 : 0), 불참: 2 + (answer === "불참" ? 1 : 0), 미응답: 6 - (answer ? 1 : 0) };
+  const toggleReminder = async (key: keyof Reminders) => {
+    if (!selected || !reminders) return;
+    const next = { ...reminders, [key]: !reminders[key] };
+    setReminders(next);
+    try {
+      setReminders(await saveReminders(selected.id, { [key]: next[key] }));
+    } catch (e) {
+      setReminders(reminders);
+      toast.show(e instanceof Error ? e.message : "알림 설정을 저장하지 못했어요.");
+    }
+  };
 
   return (
     <MyShell>
-      <MyTitle eyebrow="CALENDAR" title="2026년 10월" sub="일정을 누르면 상세와 참석 응답이 열려요." />
+      <MyTitle
+        eyebrow="CALENDAR"
+        title={`${ym.y}년 ${ym.m + 1}월`}
+        sub="일정을 누르면 상세와 참석 응답이 열려요."
+        right={
+          <div className="wd-row" style={{ gap: 6 }}>
+            <button type="button" className="wd-btn line sm" onClick={() => shift(-1)} aria-label="이전 달">
+              ‹
+            </button>
+            {!isThisMonth && (
+              <button type="button" className="wd-btn line sm" onClick={() => setYm({ y: now.getFullYear(), m: now.getMonth() })}>
+                오늘
+              </button>
+            )}
+            <button type="button" className="wd-btn line sm" onClick={() => shift(1)} aria-label="다음 달">
+              ›
+            </button>
+          </div>
+        }
+      />
+      <div className="wd-seg" style={{ marginBottom: 14, maxWidth: 360 }}>
+        {SCOPES.map((s) => (
+          <button type="button" key={s} className={scope === s ? "on" : ""} aria-pressed={scope === s} onClick={() => setScope(s)}>
+            {s}
+          </button>
+        ))}
+      </div>
+      {error && (
+        <div className="wd-banner danger" style={{ marginBottom: 14 }}>
+          <span className="ico">!</span>
+          <div>
+            <b>{error}</b>
+          </div>
+          <button type="button" className="wd-btn sm" onClick={load}>
+            다시 시도
+          </button>
+        </div>
+      )}
       <div className="pf-cal-layout">
-        <div className="wd-cal" style={{ borderRadius: 14, overflow: "hidden" }}>
-          {["일", "월", "화", "수", "목", "금", "토"].map((h) => (
+        <div className="wd-cal" style={{ borderRadius: 14, overflow: "hidden" }} aria-busy={!events && !error}>
+          {WEEK.map((h) => (
             <div key={h} className="head">{h}</div>
           ))}
-          {LEAD_DAYS.map((d) => (
+          {cells.lead.map((d) => (
             <div key={`p${d}`} className="dim" style={{ minHeight: 82 }}>
               <span>{d}</span>
             </div>
           ))}
-          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-            <div key={d} className={d === TODAY ? "today" : ""} style={{ minHeight: 82 }}>
+          {cells.days.map((d) => (
+            <div key={d} className={isThisMonth && d === now.getDate() ? "today" : ""} style={{ minHeight: 82 }}>
               <span>{d}</span>
-              {EVENTS.filter((e) => e.day === d).map((e) => (
-                <button
-                  type="button"
-                  key={e.title}
-                  className={`ev ${selected.title === e.title ? "sel" : e.tone}`}
-                  style={{ border: 0, width: "100%", textAlign: "left" }}
-                  onClick={() => setSelected(e)}
-                >
-                  {e.title}
-                </button>
-              ))}
+              {events
+                ?.filter((e) => e.day === d)
+                .map((e) => (
+                  <button
+                    type="button"
+                    key={e.id}
+                    className={`ev ${selectedId === e.id ? "sel" : e.tone}`}
+                    style={{ border: 0, width: "100%", textAlign: "left" }}
+                    onClick={() => setSelectedId(e.id)}
+                  >
+                    {e.title}
+                  </button>
+                ))}
             </div>
           ))}
         </div>
         <section className="wd-card" style={{ borderColor: "#cfe0fd" }}>
-          <span className="wd-badge blue">{selected.rsvp ? "전체 일정" : "팀 일정"}</span>
-          <h3 style={{ margin: "12px 0 6px", fontSize: 18 }}>{selected.title}</h3>
-          <dl className="wd-kv one" style={{ margin: "14px 0 18px" }}>
-            <div><dt>일시</dt><dd>{selected.time ?? `10.${String(selected.day).padStart(2, "0")} 종일`}</dd></div>
-            {selected.place && <div><dt>장소</dt><dd>{selected.place}</dd></div>}
-            {selected.host && <div><dt>주최</dt><dd>{selected.host}</dd></div>}
-            {selected.agenda && <div><dt>안건</dt><dd style={{ fontWeight: 500 }}>{selected.agenda}</dd></div>}
-          </dl>
-          {selected.rsvp ? (
+          {!events && !error && <p className="wd-t10 wd-faint" aria-busy="true">일정을 불러오는 중이에요…</p>}
+          {events && !selected && (
+            <p className="wd-t10 wd-faint" style={{ margin: 0 }}>
+              {events.length === 0 ? `${ym.m + 1}월에는 ${scope === "전체" ? "" : `${scope} `}일정이 없어요.` : "달력에서 일정을 골라 주세요."}
+            </p>
+          )}
+          {selected && (
             <>
-              <div className="wd-between wd-t10" style={{ marginBottom: 8 }}>
-                <b>참석 응답</b>
-                <span className="wd-faint">
-                  참석 {counts.참석} · 불참 {counts.불참} · 미응답 {counts.미응답}
-                </span>
-              </div>
-              <div className="wd-seg" style={{ marginBottom: 10 }}>
-                {RSVP.map((r) => (
-                  <button type="button" key={r} aria-pressed={answer === r} className={answer === r ? "on" : ""} onClick={() => respond(r)}>
-                    {r}
-                  </button>
-                ))}
-              </div>
-              {answer === "불참" && (
-                <input
-                  className="wd-input"
-                  value={why}
-                  onChange={(e) => setWhy(e.target.value)}
-                  onBlur={() => saveLocal(KEY, { ...loadLocal(KEY, {}), [selected.title]: { answer, why } })}
-                  placeholder="불참 사유 (선택)"
-                />
+              <span className={`wd-badge ${selected.tone}`}>{selected.scope} 일정</span>
+              <h3 style={{ margin: "12px 0 6px", fontSize: 18 }}>{selected.title}</h3>
+              <dl className="wd-kv one" style={{ margin: "14px 0 18px" }}>
+                <div><dt>일시</dt><dd>{whenText(selected)}</dd></div>
+                {selected.place && <div><dt>장소</dt><dd>{selected.place}</dd></div>}
+                {selected.host && <div><dt>주최</dt><dd>{selected.host}</dd></div>}
+                {selected.audience && <div><dt>대상</dt><dd>{selected.audience}</dd></div>}
+                {selected.agenda && <div><dt>안건</dt><dd style={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>{selected.agenda}</dd></div>}
+              </dl>
+              {selected.rsvp ? (
+                <>
+                  <div className="wd-between wd-t10" style={{ marginBottom: 8 }}>
+                    <b>참석 응답</b>
+                    <span className="wd-faint">참석 {selected.rsvpCount}명</span>
+                  </div>
+                  <div className="wd-seg" style={{ marginBottom: 10 }}>
+                    {RSVP_OPTIONS.map((r) => (
+                      <button
+                        type="button"
+                        key={r}
+                        aria-pressed={selected.myRsvp === r}
+                        className={selected.myRsvp === r ? "on" : ""}
+                        disabled={sending}
+                        onClick={() => respond(r)}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="wd-row" style={{ gap: 6, marginBottom: 6 }}>
+                    <input
+                      className="wd-input"
+                      value={why}
+                      onChange={(e) => setWhy(e.target.value)}
+                      placeholder="불참 사유 (선택, 불참을 누를 때 함께 보내요)"
+                      maxLength={200}
+                    />
+                  </div>
+                </>
+              ) : (
+                <p className="wd-t10 wd-faint" style={{ margin: 0 }}>참석 응답이 필요 없는 일정이에요.</p>
               )}
+              <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid #e5e8eb" }}>
+                <b className="wd-t10">미리 알림</b>
+                {!reminders && <p className="wd-t9 wd-faint" style={{ margin: "8px 0 0" }}>불러오는 중…</p>}
+                {reminders &&
+                  REMINDER_LABELS.map(([key, label]) => (
+                    <div key={key} className="wd-between wd-t10" style={{ padding: "8px 0" }}>
+                      <span>{label}</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={reminders[key]}
+                        aria-label={`${label} 알림`}
+                        className={`wd-toggle ${reminders[key] ? "on" : ""}`}
+                        onClick={() => toggleReminder(key)}
+                      />
+                    </div>
+                  ))}
+              </div>
             </>
-          ) : (
-            <p className="wd-t10 wd-faint" style={{ margin: 0 }}>참석 응답이 필요 없는 일정이에요.</p>
           )}
         </section>
       </div>
