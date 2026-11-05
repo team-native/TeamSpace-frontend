@@ -2,24 +2,56 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
-import { REPORTS, pendingIncome, waitingInquiries } from "@/lib/admin";
+import { useEffect, useState, type ReactNode } from "react";
+import { fetchAdminCounts } from "@/lib/admin-api";
 import { isStaff, useMe } from "@/lib/session";
 import EmptyState from "./EmptyState";
 import { Eyebrow } from "./ui";
 import WdPage from "./WdPage";
 import "@/app/admin.css";
 
-const NAV: [string, string, number?][] = [
+type Counts = { inquiries?: number; reports?: number; income?: number };
+
+const NAV: [string, string, (keyof Counts)?][] = [
   ["대시보드", "/inhouse/admin"],
   ["공지 관리", "/inhouse/admin/notices/new"],
   ["일정 관리", "/inhouse/admin/events/28"],
   ["문서 개정", "/inhouse/admin/documents/finance-pool"],
-  ["문의 답변", "/inhouse/admin/inquiries", waitingInquiries().length],
-  ["신고 처리", "/inhouse/admin/reports", REPORTS.length],
+  ["문의 답변", "/inhouse/admin/inquiries", "inquiries"],
+  ["신고 처리", "/inhouse/admin/reports", "reports"],
   ["재정 권한", "/inhouse/admin/finance-roles"],
-  ["수주 · 입금", "/inhouse/admin/income", pendingIncome().length],
+  ["수주 · 입금", "/inhouse/admin/income", "income"],
 ];
+
+// 메뉴 숫자는 화면을 옮겨 다녀도 한 번만 불러온다. 처리하고 나면 refreshAdminCounts 로 다시
+let cached: Counts | null = null;
+let pending: Promise<Counts> | null = null;
+const listeners = new Set<(c: Counts) => void>();
+
+export function refreshAdminCounts() {
+  pending = fetchAdminCounts()
+    .catch(() => ({}))
+    .then((c) => {
+      cached = c;
+      pending = null;
+      listeners.forEach((l) => l(c));
+      return c;
+    });
+  return pending;
+}
+
+function useAdminCounts(enabled: boolean): Counts {
+  const [counts, setCounts] = useState<Counts>(cached ?? {});
+  useEffect(() => {
+    if (!enabled) return;
+    listeners.add(setCounts);
+    if (!cached && !pending) refreshAdminCounts();
+    return () => {
+      listeners.delete(setCounts);
+    };
+  }, [enabled]);
+  return counts;
+}
 
 const section = (href: string) => href.split("/").slice(0, 4).join("/");
 
@@ -28,6 +60,7 @@ export default function AdminShell({ title, sub, right, children }: { title: str
   const pathname = usePathname();
   const router = useRouter();
   const { me } = useMe();
+  const counts = useAdminCounts(isStaff(me));
 
   if (!isStaff(me)) {
     return (
@@ -48,7 +81,8 @@ export default function AdminShell({ title, sub, right, children }: { title: str
             <b className="wd-t12">운영 관리</b>
           </div>
           <nav className="wd-toc" aria-label="운영 관리 메뉴">
-            {NAV.map(([label, href, count]) => {
+            {NAV.map(([label, href, key]) => {
+              const count = key ? counts[key] : undefined;
               const on = href === "/inhouse/admin" ? pathname === href : pathname.startsWith(section(href));
               return (
                 <Link key={href} href={href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}>
