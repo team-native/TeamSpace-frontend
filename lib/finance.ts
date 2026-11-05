@@ -157,3 +157,34 @@ export async function fetchContract(project: string): Promise<Contract | null> {
     throw e;
   }
 }
+
+// ---- 수금·계약 등록 (Admin · FA) ----
+
+export const canWriteFinance = (roles: string[] | undefined) => !!roles?.some((r) => r === "Admin" || r === "FA");
+
+export type ReceiptInput = { client: string; project: string; amount: number; status: string; date: string };
+
+export const createReceipt = async (input: ReceiptInput) => toReceipt(await api<Raw>("/admin/finance/receipts", { method: "POST", body: input }));
+
+export const updateReceipt = async (id: string, changes: Partial<ReceiptInput>) =>
+  toReceipt(await api<Raw>(`/admin/finance/receipts/${encodeURIComponent(id)}`, { method: "PATCH", body: changes }));
+
+export type ContractInput = { pm: string; signed: string; total: number; collected: number; step: number; staff: string; split: string; next: string };
+
+export const contractInput = (c: Contract | null): ContractInput => ({
+  pm: c?.pm ?? "",
+  signed: c?.signed ?? "",
+  total: c?.total ?? 0,
+  collected: c?.collected ?? 0,
+  step: c?.step ?? 0,
+  staff: c?.staff ?? "",
+  split: c?.split ?? "",
+  next: c?.next ?? "",
+});
+
+// 서버는 projectId 로 중복을 막고 project 로도 찾는다 → 둘 다 같은 값으로 보낸다
+export const createContract = async (project: string, input: ContractInput) =>
+  toContract(await api<Raw>("/admin/finance/contracts", { method: "POST", body: { project, projectId: project, ...input } }));
+
+export const updateContract = async (project: string, changes: Partial<ContractInput>) =>
+  toContract(await api<Raw>(`/admin/finance/contracts/${encodeURIComponent(project)}`, { method: "PATCH", body: changes }));
