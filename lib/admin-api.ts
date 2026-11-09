@@ -4,7 +4,7 @@ import { toInquiry, type Inquiry } from "./inquiries";
 import { fetchPost, type PostDetail } from "./board";
 import { fetchReceipts, type ReceiptRow } from "./finance";
 import { fetchNotices, type Notice } from "./notices";
-import { loadLocal, saveLocal } from "./shared";
+import { DEPARTMENTS, loadLocal, saveLocal } from "./shared";
 
 type Raw = Record<string, unknown>;
 type Page = { items: Raw[]; nextCursor: string | null };
@@ -284,6 +284,20 @@ export type NewMember = { name: string; email: string; dept: string; roles: stri
 export const createMember = (m: NewMember) => api<Raw>("/admin/users", { method: "POST", body: m });
 export const deleteMember = (userId: string) => api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
 
-// 계정 비활성화 (로그인 막기, 삭제는 아님): 백엔드에 아직 없음. PATCH /admin/users/{id} { active }
-export const setMemberActive = (userId: string, active: boolean) =>
-  api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "PATCH", body: { active } });
+// 계정 켜기 · 끄기(로그인 막기, 삭제 아님) · 부서 변경: 백엔드에 아직 없음. PATCH /admin/users/{id} { active?, dept? }
+export const updateMember = (userId: string, patch: { active?: boolean; dept?: string }) =>
+  api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "PATCH", body: patch });
+export const setMemberActive = (userId: string, active: boolean) => updateMember(userId, { active });
+
+// 부서 목록: 조직도(GET /organization)의 그룹 이름. 못 받으면 기본 목록
+export async function fetchDepartmentNames(): Promise<string[]> {
+  try {
+    const tree = await api<Raw>("/organization");
+    const groups = ((tree.organizationChart as Raw | undefined)?.groups ?? []) as Raw[];
+    const names = groups.map((g) => str(g.name)).filter(Boolean);
+    if (names.length) return names;
+  } catch {
+    // 아래 기본 목록
+  }
+  return [...DEPARTMENTS];
+}

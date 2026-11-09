@@ -5,8 +5,7 @@ import AdminShell from "@/components/inhouse/AdminShell";
 import EmptyState from "@/components/inhouse/EmptyState";
 import { Av, Modal, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
-import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, setFinancePermission, setMemberActive, setMemberRoles, type NewMember, type RoleMember } from "@/lib/admin-api";
-import { DEPARTMENTS } from "@/lib/shared";
+import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, fetchDepartmentNames, setFinancePermission, setMemberActive, setMemberRoles, updateMember, type NewMember, type RoleMember } from "@/lib/admin-api";
 import { isAdminRole, loadMe, useMe } from "@/lib/session";
 
 const notYet = (e: unknown, what: string) =>
@@ -30,6 +29,7 @@ export default function AdminMembers() {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<NewMember>(EMPTY);
   const [removing, setRemoving] = useState<RoleMember | null>(null);
+  const [depts, setDepts] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -42,7 +42,25 @@ export default function AdminMembers() {
 
   useEffect(() => {
     load();
+    fetchDepartmentNames().then(setDepts);
   }, [load]);
+
+  // 지금 값이 목록에 없어도(예전 부서) 선택지에 보이게
+  const deptOptions = (current: string) => (current && !depts.includes(current) ? [current, ...depts] : depts);
+
+  const changeDept = async (m: RoleMember, dept: string) => {
+    if (busy || dept === m.dept) return;
+    setBusy(m.id);
+    try {
+      await updateMember(m.id, { dept });
+      setRows((rs) => rs?.map((x) => (x.id === m.id ? { ...x, dept } : x)) ?? null);
+      toast.show(`${m.name}님 부서를 ${dept || "미지정"}(으)로 바꿨어요`);
+    } catch (e) {
+      toast.show(notYet(e, "부서 변경"));
+    } finally {
+      setBusy("");
+    }
+  };
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -199,7 +217,23 @@ export default function AdminMembers() {
                       </span>
                     </span>
                   </td>
-                  <td>{m.dept || "-"}</td>
+                  <td>
+                    <select
+                      className="wd-input"
+                      aria-label={`${m.name} 부서`}
+                      value={m.dept}
+                      disabled={busy === m.id}
+                      onChange={(e) => changeDept(m, e.target.value)}
+                      style={{ width: 160 }}
+                    >
+                      <option value="">부서 미지정</option>
+                      {deptOptions(m.dept).map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
                   <td>
                     <select
                       className="wd-input"
@@ -207,7 +241,7 @@ export default function AdminMembers() {
                       value={roleOf(m)}
                       disabled={busy === m.id}
                       onChange={(e) => changeRole(m, e.target.value)}
-                      style={{ width: 150, minHeight: 36 }}
+                      style={{ width: 140 }}
                     >
                       <option value="">일반 멤버</option>
                       {ROLE_OPTIONS.map(([role]) => (
@@ -277,7 +311,7 @@ export default function AdminMembers() {
             <input className="wd-input" type="email" placeholder="이메일" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} />
             <select className="wd-input" value={draft.dept} onChange={(e) => setDraft({ ...draft, dept: e.target.value })}>
               <option value="">부서 선택 (선택)</option>
-              {DEPARTMENTS.map((d) => (
+              {depts.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>

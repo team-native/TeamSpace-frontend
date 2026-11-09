@@ -94,7 +94,7 @@ export default function AdminShell({ title, sub, right, children }: { title: str
             })}
           </nav>
           <p className="wd-t9 wd-faint" style={{ padding: "22px 12px 0", lineHeight: 1.6 }}>
-            Leader · NativeOps · FA 권한이 있는 사람만 보여요.
+            Admin · Leader · FA 역할이 있는 사람만 보여요.
           </p>
         </aside>
         <main>
