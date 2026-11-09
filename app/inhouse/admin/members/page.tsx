@@ -5,7 +5,7 @@ import AdminShell from "@/components/inhouse/AdminShell";
 import EmptyState from "@/components/inhouse/EmptyState";
 import { Av, Modal, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
-import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, fetchDepartmentNames, setMemberActive, setMemberRoles, updateMember, type NewMember, type RoleMember } from "@/lib/admin-api";
+import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, fetchDepartmentNames, setFinancePermission, setMemberActive, setMemberRoles, updateMember, type NewMember, type RoleMember } from "@/lib/admin-api";
 import { isAdminRole, loadMe, useMe } from "@/lib/session";
 
 const notYet = (e: unknown, what: string) =>
@@ -17,7 +17,7 @@ const notYet = (e: unknown, what: string) =>
 const EMPTY: NewMember = { name: "", email: "", dept: "", roles: [] };
 
 // 멤버 권한 (Admin 만): 목록 GET /people
-// 역할은 PATCH /admin/users/{id}/roles 에 하나만 보낸다 (덮어쓰기)
+// 역할은 하나만: Admin · Leader · Member 는 PATCH /admin/users/{id}/roles, FA 는 재정 권한 API(켜면 FA, 끄면 Member)
 // 비활성화 PATCH /admin/users/{id} { active } · 추가 POST /admin/users · 삭제 DELETE /admin/users/{id}
 export default function AdminMembers() {
   const toast = useToast();
@@ -30,6 +30,7 @@ export default function AdminMembers() {
   const [draft, setDraft] = useState<NewMember>(EMPTY);
   const [removing, setRemoving] = useState<RoleMember | null>(null);
   const [depts, setDepts] = useState<string[]>([]);
+  const [created, setCreated] = useState<{ name: string; email: string; password: string } | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -69,7 +70,7 @@ export default function AdminMembers() {
   const adminCount = (rows ?? []).filter((m) => m.roles.includes("Admin")).length;
 
   // 한 사람에 역할 하나: Admin > Leader > FA > 일반 멤버
-  const roleOf = (m: RoleMember) => ROLE_OPTIONS.map(([r]) => r as string).find((r) => m.roles.includes(r)) ?? "";
+  const roleOf = (m: RoleMember) => ROLE_OPTIONS.map(([r]) => r as string).find((r) => m.roles.some((x) => x.toUpperCase() === r.toUpperCase())) ?? "";
 
   const changeRole = async (m: RoleMember, role: string) => {
     const prev = roleOf(m);
@@ -84,7 +85,12 @@ export default function AdminMembers() {
     const next = [role || "Member"];
     setBusy(m.id);
     try {
-      const r = await setMemberRoles(m.id, next);
+      const r =
+        role === "FA"
+          ? await setFinancePermission(m.id, true)
+          : prev === "FA" && !role
+            ? await setFinancePermission(m.id, false)
+            : await setMemberRoles(m.id, next);
       const roles = Array.isArray(r?.roles) ? r.roles : next;
       setRows((rs) => rs?.map((x) => (x.id === m.id ? { ...x, roles } : x)) ?? null);
       if (m.id === me?.id) loadMe(true);
@@ -121,8 +127,12 @@ export default function AdminMembers() {
     }
     setBusy("new");
     try {
-      await createMember({ ...draft, name: draft.name.trim(), email: draft.email.trim(), roles: draft.roles.length ? draft.roles : ["Member"] });
-      toast.show(`${draft.name.trim()}님을 추가했어요`);
+      const role = draft.roles[0] ?? "";
+      // FA 는 역할 API 로 못 정해서 Member 로 만든 뒤 재정 권한을 켠다
+      const r = await createMember({ ...draft, name: draft.name.trim(), email: draft.email.trim(), roles: [role && role !== "FA" ? role : "Member"] });
+      if (role === "FA") await setFinancePermission(String(r.id), true);
+      if (r.temporaryPassword) setCreated({ name: draft.name.trim(), email: draft.email.trim(), password: String(r.temporaryPassword) });
+      else toast.show(`${draft.name.trim()}님을 추가했어요`);
       setAdding(false);
       setDraft(EMPTY);
       load();
@@ -288,6 +298,35 @@ export default function AdminMembers() {
           <p>{ROLE_OPTIONS.map(([role, desc]) => `${role}: ${desc}`).join(" · ")}</p>
         </div>
       </div>
+      {created && (
+        <Modal
+          eyebrow="MEMBER"
+          title={`${created.name}님을 추가했어요`}
+          sub={created.email}
+          onClose={() => setCreated(null)}
+          footer={
+            <>
+              <button
+                type="button"
+                className="wd-btn ghost"
+                onClick={() => navigator.clipboard?.writeText(created.password).then(() => toast.show("임시 비밀번호를 복사했어요"), () => toast.show("복사하지 못했어요"))}
+              >
+                복사
+              </button>
+              <button type="button" className="wd-btn" onClick={() => setCreated(null)}>
+                확인
+              </button>
+            </>
+          }
+        >
+          <p className="wd-t11" style={{ margin: "0 0 10px", lineHeight: 1.7 }}>
+            임시 비밀번호예요. 이 창을 닫으면 다시 볼 수 없으니 본인에게 전달해 주세요.
+          </p>
+          <code className="wd-input" style={{ display: "block", fontSize: 15, letterSpacing: 0.5, userSelect: "all" }}>
+            {created.password}
+          </code>
+        </Modal>
+      )}
       {adding && (
         <Modal
           eyebrow="MEMBER"
