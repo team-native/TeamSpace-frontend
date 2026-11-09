@@ -4,6 +4,7 @@ import { toInquiry, type Inquiry } from "./inquiries";
 import { fetchPost, type PostDetail } from "./board";
 import { fetchReceipts, type ReceiptRow } from "./finance";
 import { fetchNotices, type Notice } from "./notices";
+import { DEPARTMENTS, loadLocal, saveLocal } from "./shared";
 
 type Raw = Record<string, unknown>;
 type Page = { items: Raw[]; nextCursor: string | null };
@@ -132,7 +133,7 @@ export async function fetchAdminCounts(): Promise<{ inquiries?: number; reports?
     inquiries: q.status === "fulfilled" ? q.value.length : undefined,
     reports: r.status === "fulfilled" ? groupReports(r.value).length : undefined,
     income: i.status === "fulfilled" ? i.value.length : undefined,
-    signups: s.status === "fulfilled" ? s.value.filter((x) => x.status === "PENDING").length : undefined,
+    signups: s.status === "fulfilled" ? unseenSignups(s.value) : undefined,
   };
 }
 
@@ -188,6 +189,15 @@ export const setFinancePermission = (userId: string, canViewFinance: boolean) =>
 
 // ---- 가입 요청 ----
 
+// 메뉴 배지는 '아직 안 본 대기 요청' 수. 가입 요청 화면을 열면 그때 대기 중인 요청을 본 것으로 기록 (이 브라우저 기준)
+const SEEN_SIGNUPS = "admin-seen-signups";
+const unseenSignups = (rows: SignupRequest[]) => {
+  const seen = new Set(loadLocal<string[]>(SEEN_SIGNUPS, []));
+  return rows.filter((r) => r.status === "PENDING" && !seen.has(r.id)).length;
+};
+export const markSignupsSeen = (rows: SignupRequest[]) =>
+  saveLocal(SEEN_SIGNUPS, rows.filter((r) => r.status === "PENDING").map((r) => r.id));
+
 export type SignupRequest = {
   id: string;
   email: string;
@@ -225,3 +235,69 @@ export async function fetchSignupRequests(max = 300): Promise<SignupRequest[]> {
 
 export const approveSignupRequest = (id: string) =>
   api<Raw>(`/admin/signup-requests/${encodeURIComponent(id)}/approve`, { method: "POST", body: {} });
+
+// 반려: 백엔드에 아직 없음. 합의한 모양 POST /admin/signup-requests/{id}/reject { reason }
+export const rejectSignupRequest = (id: string, reason: string) =>
+  api<Raw>(`/admin/signup-requests/${encodeURIComponent(id)}/reject`, { method: "POST", body: { reason } });
+
+// ---- 멤버 역할 ----
+
+// 관리자가 주고 뺄 수 있는 역할. 아무것도 없으면 일반 멤버
+export const ROLE_OPTIONS = [
+  ["Admin", "운영 관리 전체 · 역할 변경"],
+  ["Leader", "공지 · 일정 · 재정 열람"],
+  ["FA", "재정 열람 · 수금 등록"],
+] as const;
+
+export type RoleMember = { id: string; name: string; email: string; dept: string; roles: string[]; active: boolean };
+
+export async function fetchRoleMembers(): Promise<RoleMember[]> {
+  const all: RoleMember[] = [];
+  let cursor: string | null = null;
+  for (let i = 0; i < 20; i++) {
+    const page: Page = await api<Page>("/people", { query: { limit: 100, cursor: cursor ?? undefined } });
+    all.push(
+      ...page.items.map((p) => ({
+        id: str(p.id),
+        name: str(p.name) || "이름 없음",
+        email: str(p.email),
+        dept: str(p.dept),
+        roles: Array.isArray(p.roles) ? p.roles.map(str) : [],
+        // 서버가 아직 안 내려주면 활성으로 본다
+        active: p.active === undefined && p.isActive === undefined ? true : !!(p.active ?? p.isActive),
+      })),
+    );
+    cursor = page.nextCursor;
+    if (!cursor) break;
+  }
+  return all;
+}
+
+// 역할 변경: 백엔드에 아직 없음. 합의한 모양 PATCH /admin/users/{id}/roles { roles } → { id, roles }
+export const setMemberRoles = (userId: string, roles: string[]) =>
+  api<{ id: string; roles: string[] }>(`/admin/users/${encodeURIComponent(userId)}/roles`, { method: "PATCH", body: { roles } });
+
+// 멤버 추가 · 삭제: 백엔드에 아직 없음. 합의할 모양
+// POST /admin/users { name, email, dept, roles } → 만든 멤버 (임시 비밀번호는 서버가 메일로 보냄)
+// DELETE /admin/users/{id}
+export type NewMember = { name: string; email: string; dept: string; roles: string[] };
+export const createMember = (m: NewMember) => api<Raw>("/admin/users", { method: "POST", body: m });
+export const deleteMember = (userId: string) => api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
+
+// 계정 켜기 · 끄기(로그인 막기, 삭제 아님) · 부서 변경: 백엔드에 아직 없음. PATCH /admin/users/{id} { active?, dept? }
+export const updateMember = (userId: string, patch: { active?: boolean; dept?: string }) =>
+  api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "PATCH", body: patch });
+export const setMemberActive = (userId: string, active: boolean) => updateMember(userId, { active });
+
+// 부서 목록: 조직도(GET /organization)의 그룹 이름. 못 받으면 기본 목록
+export async function fetchDepartmentNames(): Promise<string[]> {
+  try {
+    const tree = await api<Raw>("/organization");
+    const groups = ((tree.organizationChart as Raw | undefined)?.groups ?? []) as Raw[];
+    const names = groups.map((g) => str(g.name)).filter(Boolean);
+    if (names.length) return names;
+  } catch {
+    // 아래 기본 목록
+  }
+  return [...DEPARTMENTS];
+}
