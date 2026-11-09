@@ -11,6 +11,8 @@ import { fetchDocs, type DocItem } from "@/lib/docs";
 
 const RECENT_KEY = "native-inhouse-recent-searches";
 
+const DOC_TYPE_LABEL: Record<string, string> = { RULE: "규칙", FINANCE: "재무", GUIDE: "가이드", TEMPLATE: "템플릿" };
+
 export default function DocumentsPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("전체");
@@ -186,7 +188,7 @@ export default function DocumentsPage() {
           {revised && (
             <div className="wd-scope wd-wrap" style={{ marginBottom: 40 }}>
               <div className="wd-banner warn">
-                <span className="ico" style={{ color: "#9a6b00" }}>
+                <span className="ico" style={{ color: "var(--t-orange)" }}>
                   !
                 </span>
                 <div>
@@ -238,7 +240,7 @@ export default function DocumentsPage() {
                     className="pf-doc-reveal"
                     style={{ "--row-delay": `${i * 55}ms` } as CSSProperties}
                   >
-                    <small>{doc.type}</small>
+                    <small>{DOC_TYPE_LABEL[doc.type] ?? doc.type}</small>
                     <div>
                       <b>
                         {doc.title}

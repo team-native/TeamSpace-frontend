@@ -110,7 +110,7 @@ export default function ApprovalDetailPage() {
 
             {approval.status === "반려" && approval.rejectReason && (
               <div className="wd-banner danger" style={{ marginBottom: 22 }}>
-                <span className="ico" style={{ color: "#f04452" }}>!</span>
+                <span className="ico" style={{ color: "var(--t-red)" }}>!</span>
                 <div>
                   <b>반려 사유</b>
                   <p>{approval.rejectReason}</p>
@@ -161,7 +161,7 @@ export default function ApprovalDetailPage() {
 
           <aside className="wd-stack">
             {myStep ? (
-              <section className="wd-card" style={myTurn ? { borderColor: "#3182f6", boxShadow: "0 0 0 4px #3182f614" } : undefined}>
+              <section className="wd-card" style={myTurn ? { borderColor: "var(--t-cobalt)", boxShadow: "0 0 0 4px #3182f614" } : undefined}>
                 <div className="wd-card-head">
                   <h3>내 검토</h3>
                   <span className={`wd-badge ${myTurn ? "blue" : myStep.state === "done" ? "green" : ""}`}>{myTurn ? "내 차례" : myStep.state === "done" ? "처리 완료" : "앞 단계 대기"}</span>
@@ -309,7 +309,7 @@ export default function ApprovalDetailPage() {
                 aria-checked={rejectPick === x}
                 key={x}
                 className="wd-row wd-t11"
-                style={{ padding: "10px 12px", border: `1px solid ${rejectPick === x ? "#3182f6" : "var(--wd-line)"}`, borderRadius: 11, background: "transparent", textAlign: "left" }}
+                style={{ padding: "10px 12px", border: `1px solid ${rejectPick === x ? "var(--t-cobalt)" : "var(--wd-line)"}`, borderRadius: 11, background: "transparent", textAlign: "left" }}
                 onClick={() => setRejectPick(x)}
               >
                 <span className={`wd-radio ${rejectPick === x ? "on" : ""}`} />

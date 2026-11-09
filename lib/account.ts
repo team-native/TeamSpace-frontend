@@ -9,6 +9,7 @@ export type ProfileInput = {
   cohort: string;
   github: string;
   photo: string;
+  avatarBackground: string;
   bio: string;
   interests: string[];
 };
@@ -22,7 +23,7 @@ export type UserSettings = { theme: Theme; passwordChangedAt?: string };
 
 export async function fetchSettings(): Promise<UserSettings> {
   const s = await api<Record<string, unknown>>("/me/settings");
-  const theme = (["시스템", "라이트", "다크"] as const).find((t) => t === s.theme) ?? "시스템";
+  const theme = (["시스템", "라이트", "다크"] as const).find((t) => t === s.theme) ?? "라이트";
   return { theme, passwordChangedAt: typeof s.passwordChangedAt === "string" ? s.passwordChangedAt : undefined };
 }
 

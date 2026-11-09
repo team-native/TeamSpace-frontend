@@ -155,7 +155,7 @@ export default function AdminInquiries() {
                 type="button"
                 key={q.id}
                 className="wd-card"
-                style={{ padding: 16, textAlign: "left", borderColor: q.id === selected?.id ? "#3182f6" : undefined }}
+                style={{ padding: 16, textAlign: "left", borderColor: q.id === selected?.id ? "var(--t-cobalt)" : undefined }}
                 onClick={() => {
                   setSelectedId(q.id);
                   setAnswer("");

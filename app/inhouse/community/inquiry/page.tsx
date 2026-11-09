@@ -202,7 +202,7 @@ function InquiryView() {
                 key={q.id}
                 className="wd-card"
                 aria-pressed={q.id === selected.id}
-                style={{ padding: 16, textAlign: "left", borderColor: q.id === selected.id ? "#3182f6" : undefined }}
+                style={{ padding: 16, textAlign: "left", borderColor: q.id === selected.id ? "var(--t-cobalt)" : undefined }}
                 onClick={() => {
                   setSelectedId(q.id);
                   setReplyOpen(false);
@@ -239,15 +239,15 @@ function InquiryView() {
               {selected.type} · {selected.dept} · {selected.anonymous ? "익명" : "실명"}
             </span>
             <h2 style={{ margin: "8px 0 10px", fontSize: 20, letterSpacing: "-.04em" }}>{selected.title}</h2>
-            <p className="wd-t11" style={{ lineHeight: 1.75, color: "#333d4b", margin: "0 0 22px", whiteSpace: "pre-line" }}>{selected.body}</p>
+            <p className="wd-t11" style={{ lineHeight: 1.75, color: "var(--t-text)", margin: "0 0 22px", whiteSpace: "pre-line" }}>{selected.body}</p>
             {selected.answer ? (
-              <div className="wd-card soft" style={{ borderLeft: "3px solid #3182f6", borderRadius: 14 }}>
+              <div className="wd-card soft" style={{ borderLeft: "3px solid var(--t-cobalt)", borderRadius: 14 }}>
                 <div className="wd-row" style={{ gap: 8, marginBottom: 10 }}>
                   <Av name={selected.answer.who} size="sm" />
                   <b className="wd-t11">{selected.answer.who}</b>
                   <span className="wd-t9 wd-faint">답변 · {selected.answer.at}</span>
                 </div>
-                <p className="wd-t11" style={{ lineHeight: 1.75, margin: 0, color: "#333d4b", whiteSpace: "pre-line" }}>{selected.answer.text}</p>
+                <p className="wd-t11" style={{ lineHeight: 1.75, margin: 0, color: "var(--t-text)", whiteSpace: "pre-line" }}>{selected.answer.text}</p>
               </div>
             ) : (
               <div className="wd-banner gray">

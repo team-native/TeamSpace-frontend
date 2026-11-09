@@ -249,7 +249,7 @@ function ApprovalBox({ initialTab }: { initialTab: "mine" | "received" }) {
           </div>
 
           <aside className="wd-stack">
-            <section className="wd-card" style={{ borderColor: "#cfe0fd" }}>
+            <section className="wd-card" style={{ borderColor: "var(--t-blue-line)" }}>
               <div className="wd-card-head">
                 <h3>받은 결재</h3>
                 <span className="wd-badge blue">대기 {receivedList.length}</span>

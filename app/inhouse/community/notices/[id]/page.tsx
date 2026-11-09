@@ -77,7 +77,7 @@ export default function NoticePage() {
           <Attachments files={notice.attachments} />
           {notice.related.length > 0 && (
             <>
-              <b className="wd-t10" style={{ display: "block", margin: "26px 0 10px", color: "#4e5968" }}>관련 문서</b>
+              <b className="wd-t10" style={{ display: "block", margin: "26px 0 10px", color: "var(--t-muted)" }}>관련 문서</b>
               <div className="wd-grid g2">
                 {notice.related.map(([slug, title]) => (
                   <Link key={slug} href={`/inhouse/documents/${encodeURIComponent(slug)}`} className="wd-file">
@@ -95,7 +95,7 @@ export default function NoticePage() {
         </article>
         <aside className="wd-stack">
           {notice.mustRead && (
-            <section className="wd-card" style={{ borderColor: "#cfe0fd" }}>
+            <section className="wd-card" style={{ borderColor: "var(--t-blue-line)" }}>
               <h3 style={{ fontSize: 12 }}>필독 확인</h3>
               <p className="wd-t9 wd-faint" style={{ margin: "6px 0 14px" }}>읽었다면 확인을 눌러주세요. 운영진이 확인 현황을 봐요.</p>
               <div className="wd-between wd-t10" style={{ marginBottom: 8 }}>

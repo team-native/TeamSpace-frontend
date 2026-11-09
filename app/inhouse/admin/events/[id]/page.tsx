@@ -140,7 +140,7 @@ export default function AdminEventEdit() {
     >
       {!isAdminRole(me) && (
         <div className="wd-banner warn" style={{ marginBottom: 18 }}>
-          <span className="ico" style={{ color: "#9a6b00" }}>!</span>
+          <span className="ico" style={{ color: "var(--t-orange)" }}>!</span>
           <div>
             <b>일정 등록·수정은 Admin만 저장할 수 있어요</b>
             <p>Leader · FA 역할은 내용을 볼 수만 있어요.</p>
@@ -185,7 +185,7 @@ export default function AdminEventEdit() {
                 <span className="wd-faint">–</span>
                 <input className="wd-input" type="time" aria-label="끝 시간" value={form.end} onChange={(e) => set("end", e.target.value)} />
               </div>
-              {timeError && <p className="wd-t9" style={{ color: "#f04452", margin: "6px 0 0" }}>{timeError}</p>}
+              {timeError && <p className="wd-t9" style={{ color: "var(--t-red)", margin: "6px 0 0" }}>{timeError}</p>}
             </div>
           </div>
           <div className="wd-field">
@@ -225,7 +225,7 @@ export default function AdminEventEdit() {
           </section>
           {dateChanged && (
             <div className="wd-banner warn" role="status">
-              <span className="ico" style={{ color: "#9a6b00" }}>!</span>
+              <span className="ico" style={{ color: "var(--t-orange)" }}>!</span>
               <div>
                 <b style={{ fontSize: 11 }}>날짜가 바뀌어요 · {label(form.date)}</b>
                 <p>저장하면 전체에게 변경 알림이 가요.</p>

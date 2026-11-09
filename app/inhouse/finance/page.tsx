@@ -91,7 +91,7 @@ export default function FinancePage() {
             <div className="ih-traffic-head">
               <span>이번 달 재무 트래픽</span>
               <small>
-                {data.period} <b>{data.demo ? "데모 데이터" : "LIVE"}</b>
+                {data.period} {data.demo && <b>데모 데이터</b>}
               </small>
             </div>
             <div className="ih-traffic-source">
@@ -114,7 +114,7 @@ export default function FinancePage() {
                 >
                   <i />
                   <small>{pool.id === "dividend" ? "배당풀" : pool.label}</small>
-                  <strong>{pool.id === "dividend" ? `${pool.ratio}%` : `${won.format(pool.amount)}원`}</strong>
+                  <strong>{`${won.format(pool.amount)}원`}</strong>
                   <span>{pool.ratio}%</span>
                 </div>
               ))}
@@ -251,7 +251,7 @@ export default function FinancePage() {
           </Reveal>
           <Reveal className="ih-receipt-table" delay={100}>
             {data.receipts.length === 0 && (
-              <p style={{ padding: "28px 24px", margin: 0, color: "#8b95a1", fontSize: 14 }}>아직 등록된 수금이 없어요.</p>
+              <p style={{ padding: "28px 24px", margin: 0, color: "var(--t-faint)", fontSize: 14 }}>아직 등록된 수금이 없어요.</p>
             )}
             {data.receipts.slice(0, expanded ? data.receipts.length : 3).map((receipt, i) => (
               <button
@@ -294,7 +294,7 @@ export default function FinancePage() {
             <b>Native</b>
           </div>
           <p>플랫폼에 맞는 자연스러운 경험을 설계하고 구현합니다.</p>
-          <small>INTERNAL USE ONLY · 2026 NATIVE</small>
+          <small>Native 내부 전용</small>
         </footer>
       </div>
     </main>
@@ -302,7 +302,7 @@ export default function FinancePage() {
 }
 
 function donutGradient(data: InhouseData) {
-  if (data.pools.reduce((sum, p) => sum + p.ratio, 0) === 0) return "#e5e8eb";
+  if (data.pools.reduce((sum, p) => sum + p.ratio, 0) === 0) return "var(--t-line)";
   const stops = data.pools.map((pool, i) => {
     const from = data.pools.slice(0, i).reduce((sum, p) => sum + p.ratio, 0);
     const to = data.pools.slice(0, i + 1).reduce((sum, p) => sum + p.ratio, 0);
@@ -353,7 +353,7 @@ function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; 
 
 function FlowChart({ items }: { items: InhouseData["flow"] }) {
   if (items.length === 0) {
-    return <p style={{ padding: "60px 0", textAlign: "center", color: "#8b95a1", fontSize: 14 }}>아직 쌓인 월별 기록이 없어요.</p>;
+    return <p style={{ padding: "60px 0", textAlign: "center", color: "var(--t-faint)", fontSize: 14 }}>아직 쌓인 월별 기록이 없어요.</p>;
   }
   const max = Math.max(1, ...items.flatMap((f) => [f.income, f.expense])) * 1.12;
   // 한 달뿐이면 가운데에 점 하나

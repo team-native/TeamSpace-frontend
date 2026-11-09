@@ -125,7 +125,7 @@ export default function AdminIncome() {
     >
       {me && !canWrite && (
         <div className="wd-banner warn" style={{ marginBottom: 18 }}>
-          <span className="ico" style={{ color: "#9a6b00" }}>!</span>
+          <span className="ico" style={{ color: "var(--t-orange)" }}>!</span>
           <div>
             <b>수금·계약 등록은 Admin · FA만 할 수 있어요</b>
             <p>Leader는 내역을 볼 수만 있어요.</p>
@@ -413,7 +413,7 @@ function ContractEditor({ project, canWrite, onClose, onSaved }: { project: stri
               </label>
               <label className="wd-field">
                 <span>
-                  수금한 금액 {overCollected && <em style={{ color: "#f04452" }}>계약 금액보다 커요</em>}
+                  수금한 금액 {overCollected && <em style={{ color: "var(--t-red)" }}>계약 금액보다 커요</em>}
                 </span>
                 <input className="wd-input" inputMode="numeric" value={form.collected ? won(form.collected) : ""} onChange={(e) => set("collected", digits(e.target.value))} placeholder="0" />
               </label>

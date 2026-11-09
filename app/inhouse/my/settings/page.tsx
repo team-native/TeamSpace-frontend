@@ -23,7 +23,7 @@ import { canFinance, signOut, useMe } from "@/lib/session";
 
 function Row({ t, s, children }: { t: string; s?: string; children: ReactNode }) {
   return (
-    <div className="wd-between" style={{ padding: "16px 0", borderBottom: "1px solid #e5e8eb" }}>
+    <div className="wd-between t-set-row">
       <div>
         <b className="wd-t12" style={{ fontWeight: 620 }}>{t}</b>
         {s && <p className="wd-t9 wd-faint" style={{ margin: "4px 0 0" }}>{s}</p>}
@@ -51,6 +51,7 @@ export default function SettingsPage() {
   const [pwServerError, setPwServerError] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
   const notiRef = useRef<NotiSettings | null>(null);
+  const notiReq = useRef(0);
   notiRef.current = noti;
 
   const load = useCallback(async () => {
@@ -85,16 +86,24 @@ export default function SettingsPage() {
     }
   };
 
-  // 바로 화면에 반영하고, 실패하면 되돌린다
+  // 바로 화면에 반영하고, 실패하면 되돌린다.
+  // kinds는 일부만 보내면 나머지 항목이 초기값으로 돌아갈 수 있어 항상 전체를 보낸다.
+  // 연달아 누르면 마지막 요청의 응답만 화면에 반영한다.
   const patchNoti = async (patch: Partial<NotiSettings>) => {
     const prev = notiRef.current;
-    if (!prev) return;
-    setNoti({ ...prev, ...patch, kinds: { ...prev.kinds, ...(patch.kinds ?? {}) } });
+    if (!prev) return false;
+    const next = { ...prev, ...patch, kinds: { ...prev.kinds, ...(patch.kinds ?? {}) } };
+    notiRef.current = next;
+    setNoti(next);
+    const id = ++notiReq.current;
     try {
-      setNoti(await saveNotiSettings(patch));
+      const saved = await saveNotiSettings(patch.kinds ? { ...patch, kinds: next.kinds } : patch);
+      if (id === notiReq.current) setNoti(saved);
+      return true;
     } catch (e) {
-      setNoti(prev);
+      if (id === notiReq.current) setNoti(prev);
       toast.show(e instanceof Error ? e.message : "알림 설정을 저장하지 못했어요.");
+      return false;
     }
   };
 
@@ -104,8 +113,7 @@ export default function SettingsPage() {
     try {
       if (v) await subscribePush();
       else await unsubscribePush().catch(() => {});
-      await patchNoti({ push: v });
-      toast.show(v ? "브라우저 푸시를 켰어요" : "브라우저 푸시를 껐어요");
+      if (await patchNoti({ push: v })) toast.show(v ? "브라우저 푸시를 켰어요" : "브라우저 푸시를 껐어요");
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "푸시를 켜지 못했어요.");
     } finally {
@@ -272,7 +280,7 @@ export default function SettingsPage() {
               <input className="wd-input" type="password" value={pw[k]} onChange={(e) => setPw({ ...pw, [k]: e.target.value })} />
             </label>
           ))}
-          {(pwError || pwServerError) && <p className="wd-t10" role="alert" style={{ color: "#f04452", margin: 0 }}>{pwError || pwServerError}</p>}
+          {(pwError || pwServerError) && <p className="wd-t10" role="alert" style={{ color: "var(--t-red)", margin: 0 }}>{pwError || pwServerError}</p>}
         </Modal>
       )}
       {toast.node}

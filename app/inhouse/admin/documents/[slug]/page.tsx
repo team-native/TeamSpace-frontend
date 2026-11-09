@@ -155,7 +155,7 @@ export default function AdminDocRevise() {
     >
       {!isAdminRole(me) && (
         <div className="wd-banner warn" style={{ marginBottom: 18 }}>
-          <span className="ico" style={{ color: "#9a6b00" }}>!</span>
+          <span className="ico" style={{ color: "var(--t-orange)" }}>!</span>
           <div>
             <b>문서 등록·개정은 Admin만 게시할 수 있어요</b>
           </div>
@@ -208,9 +208,9 @@ export default function AdminDocRevise() {
                 <span>한 줄 설명</span>
                 <input className="wd-input" maxLength={120} value={meta.copy} onChange={(e) => setMeta({ ...meta, copy: e.target.value })} placeholder="문서함 목록에 보이는 설명" />
               </label>
-              {meta.slug && !slugOk && <p className="wd-t9" style={{ color: "#f04452", margin: "6px 0 0" }}>주소 이름은 2자 이상, 영문 소문자·숫자·-만 쓸 수 있어요</p>}
+              {meta.slug && !slugOk && <p className="wd-t9" style={{ color: "var(--t-red)", margin: "6px 0 0" }}>주소 이름은 2자 이상, 영문 소문자·숫자·-만 쓸 수 있어요</p>}
               {allDocs.some((d) => d.slug === meta.slug) && (
-                <p className="wd-t9" style={{ color: "#f04452", margin: "6px 0 0" }}>
+                <p className="wd-t9" style={{ color: "var(--t-red)", margin: "6px 0 0" }}>
                   이미 있는 주소예요. 등록하면 그 문서가 개정돼요 — <Link href={`/inhouse/admin/documents/${meta.slug}`}>개정 화면으로</Link>
                 </p>
               )}
@@ -243,8 +243,8 @@ export default function AdminDocRevise() {
                       <p className="wd-t11" style={{ lineHeight: 1.8, margin: "8px 0 0", whiteSpace: "pre-line" }}>{d.base || "새 조항"}</p>
                     </div>
                   )}
-                  <label className="wd-card" style={{ padding: 16, borderColor: "#3182f6", display: "block" }}>
-                    <span className="wd-t9" style={{ fontWeight: 750, color: "#3568d4" }}>{next} (편집 중)</span>
+                  <label className="wd-card" style={{ padding: 16, borderColor: "var(--t-cobalt)", display: "block" }}>
+                    <span className="wd-t9" style={{ fontWeight: 750, color: "var(--t-blue)" }}>{next} (편집 중)</span>
                     <textarea
                       className="wd-input"
                       style={{ minHeight: 90, marginTop: 8, lineHeight: 1.8 }}
@@ -260,7 +260,7 @@ export default function AdminDocRevise() {
           )}
           {!isNew && (
             <>
-              <b className="wd-t10" style={{ display: "block", color: "#4e5968", marginBottom: 8 }}>
+              <b className="wd-t10" style={{ display: "block", color: "var(--t-muted)", marginBottom: 8 }}>
                 변경 없는 조항 {drafts.filter((_, i) => !changed[i] && editing !== i).length}개
               </b>
               <div className="wd-stack" style={{ gap: 6 }}>

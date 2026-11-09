@@ -80,7 +80,7 @@ export default function NotificationsPage() {
                   className="wd-group-label"
                   style={{
                     padding: "16px 18px 6px",
-                    borderTop: gi ? "1px solid #e5e8eb" : undefined,
+                    borderTop: gi ? "1px solid var(--t-line)" : undefined,
                   }}
                 >
                   {when}

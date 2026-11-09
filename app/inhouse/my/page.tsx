@@ -81,7 +81,7 @@ export default function MySpacePage() {
         ))}
       </div>
       <div className="wd-grid g2" style={{ marginBottom: 18 }}>
-        <section className="wd-card" style={{ borderColor: "#cfe0fd" }}>
+        <section className="wd-card" style={{ borderColor: "var(--t-blue-line)" }}>
           <div className="wd-card-head">
             <h3>나에게 온 결재</h3>
             <Link className="wd-link" href="/inhouse/requests?tab=received#box">

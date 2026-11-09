@@ -200,7 +200,7 @@ export default function ReceiptsPage() {
           ].map(([k, v, s], i) => (
             <div className="wd-card wd-stat" key={k as string}>
               <small>{k}</small>
-              <strong style={{ color: i === 3 && (v as number) > 0 ? "#f04452" : undefined }}>
+              <strong style={{ color: i === 3 && (v as number) > 0 ? "var(--t-red)" : undefined }}>
                 {inRange ? `${won.format(v as number)}원` : "–"}
               </strong>
               <span className="wd-t9 wd-faint" style={{ display: "block", marginTop: 5 }}>

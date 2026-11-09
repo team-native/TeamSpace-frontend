@@ -109,7 +109,7 @@ export default function AdminHome() {
         {stats.map(([k, v, s, t]) => (
           <div key={k} className="wd-card wd-stat">
             <small>{k}</small>
-            <strong style={{ color: t === "red" && v !== "0" && v !== "권한 없음" ? "#f04452" : undefined }}>{v}</strong>
+            <strong style={{ color: t === "red" && v !== "0" && v !== "권한 없음" ? "var(--t-red)" : undefined }}>{v}</strong>
             <span className="wd-t9 wd-faint" style={{ display: "block", marginTop: 5 }}>{s}</span>
           </div>
         ))}

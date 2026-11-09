@@ -10,6 +10,7 @@ export type Profile = {
   major: string;
   github: string;
   photo: string;
+  avatarBackground?: string;
 };
 
 export const PROFILE_EVENT = "native-inhouse-profile-updated";

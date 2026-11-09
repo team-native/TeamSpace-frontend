@@ -29,6 +29,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [resetError, setResetError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [invalid, setInvalid] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(EMAIL_KEY);
@@ -51,15 +52,34 @@ export default function LoginPage() {
       </header>
       <section className="pf-login-center">
         <form
+          key={mode}
           className="pf-login-form"
+          noValidate
           onSubmit={async (e) => {
             e.preventDefault();
             if (busy) return;
             setError("");
-            if (mode === "request" && !dept) {
-              setError("소속 부서를 선택해주세요.");
+            // 브라우저 기본 말풍선 대신 화면 안에서 한 문장으로 알려준다
+            const problem =
+              mode === "request" && !name.trim()
+                ? ["name", "이름을 입력해주세요."]
+                : !email.trim()
+                  ? ["email", "이메일을 입력해주세요."]
+                  : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+                    ? ["email", "이메일 형식을 확인해주세요."]
+                    : !password
+                      ? ["password", "비밀번호를 입력해주세요."]
+                      : password.length < 8
+                        ? ["password", "비밀번호는 8자 이상이에요."]
+                        : mode === "request" && !dept
+                          ? ["dept", "소속 부서를 선택해주세요."]
+                          : null;
+            if (problem) {
+              setInvalid(problem[0]);
+              setError(problem[1]);
               return;
             }
+            setInvalid("");
             setBusy(true);
             try {
               if (mode === "request") {
@@ -92,20 +112,33 @@ export default function LoginPage() {
           </p>
           {mode === "request" && (
             <label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" required />
+              <input
+                value={name}
+                onChange={(e) => (setName(e.target.value), invalid === "name" && setInvalid(""))}
+                placeholder="이름"
+                aria-invalid={invalid === "name"}
+                autoComplete="name"
+              />
             </label>
           )}
           <label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일" required />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => (setEmail(e.target.value), invalid === "email" && setInvalid(""))}
+              placeholder="이메일"
+              aria-invalid={invalid === "email"}
+              autoComplete="email"
+            />
           </label>
           <label className="pf-password">
             <input
               type={showPassword ? "text" : "password"}
-              minLength={8}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => (setPassword(e.target.value), invalid === "password" && setInvalid(""))}
               placeholder="비밀번호"
-              required
+              aria-invalid={invalid === "password"}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
             <button
               type="button"
@@ -118,7 +151,7 @@ export default function LoginPage() {
           {mode === "request" && (
             <div className="wd-scope" style={{ margin: "16px 0 4px", textAlign: "left" }}>
               <div className="wd-between" style={{ marginBottom: 8 }}>
-                <b className="wd-t10" style={{ color: "#4e5968" }}>소속 부서</b>
+                <b className="wd-t10" style={{ color: "var(--t-muted)" }}>소속 부서</b>
                 <span className="wd-t9 wd-faint">승인 시 운영진이 다시 확인해요</span>
               </div>
               <div className="wd-chips" role="radiogroup" aria-label="소속 부서">
@@ -129,7 +162,7 @@ export default function LoginPage() {
                     role="radio"
                     aria-checked={dept === d}
                     className={`wd-chip ${dept === d ? "bon" : ""}`}
-                    onClick={() => setDept(d)}
+                    onClick={() => (setDept(d), invalid === "dept" && setInvalid(""))}
                   >
                     {dept === d && "✓ "}
                     {d}
@@ -173,7 +206,7 @@ export default function LoginPage() {
           )}
           {error && (
             <div className="wd-scope" style={{ marginTop: 16 }}>
-              <div className="wd-banner danger" role="alert" style={{ padding: "12px 14px" }}>
+              <div key={error} className="wd-banner danger" role="alert" style={{ padding: "12px 14px" }}>
                 <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>!</span>
                 <p style={{ margin: 0 }}>{error}</p>
               </div>
@@ -181,6 +214,9 @@ export default function LoginPage() {
           )}
           <button className="pf-login-submit" disabled={busy} aria-busy={busy}>
             {busy ? "잠시만요…" : mode === "login" ? "로그인" : "가입 요청 보내기"}
+            <i aria-hidden="true">
+              <span>→</span>
+            </i>
           </button>
           <div className="pf-login-switch">
             {mode === "login" ? "처음이신가요?" : "이미 계정이 있나요?"}
@@ -190,6 +226,7 @@ export default function LoginPage() {
                 setMode(mode === "login" ? "request" : "login");
                 setMessage("");
                 setError("");
+                setInvalid("");
               }}
             >
               {mode === "login" ? "가입 요청하기" : "로그인하기"}
@@ -199,7 +236,7 @@ export default function LoginPage() {
       </section>
       {resetOpen && (
         <Modal
-          eyebrow="RESET PASSWORD"
+          eyebrow="계정"
           title={resetSent ? "메일을 보냈어요" : "비밀번호 찾기"}
           sub={resetSent ? `${resetEmail}로 재설정 링크를 보냈어요.` : "가입한 이메일로 재설정 링크를 보내드려요."}
           size="sm"

@@ -1,37 +1,48 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { departmentsOf, founderOf, personLine, type Person } from "@/lib/people";
+import type { OrgMember, Organization } from "@/lib/organization";
 import { Av, Eyebrow, Modal, useToast } from "./ui";
 import EmptyState from "@/components/inhouse/EmptyState";
 
-const TEAMS = ["전체", "Native", "NativeLab"] as const;
-type Team = (typeof TEAMS)[number];
-const teamOf = (p: Person): Team => (p.dept === "NativeLab" ? "NativeLab" : "Native");
-// 팀원 찾기: 팀 탭 · 검색 · 부서 필터 · 새 멤버 배너 · 조직도 · 팀원 상세 (GET /people)
-export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
-  const [team, setTeam] = useState<Team>("전체");
+const memberLine = (m: OrgMember) => m.displaySubtitle || [m.primaryDepartment, m.role].filter(Boolean).join(" · ") || "소속 미등록";
+
+// 팀원 찾기: 조직 탭 · 검색 · 부서 필터 · 새 멤버 배너 · 조직도 · 팀원 상세 (GET /organization/tree)
+export default function TeamFinder({ org }: { org: Organization }) {
+  const PEOPLE = org.members;
+  const TEAMS = ["전체", ...Object.keys(org.meta.organizationCounts).filter((k) => k !== "all")];
+  if (TEAMS.length === 1) TEAMS.push(...new Set(PEOPLE.flatMap((p) => p.organizations)));
+  const [team, setTeam] = useState<string>("전체");
   const [view, setView] = useState<"list" | "org">("list");
   const [dept, setDept] = useState<string>("전체");
   const [query, setQuery] = useState("");
-  const [openDept, setOpenDept] = useState<string>("Core Platform");
-  const [selected, setSelected] = useState<Person | null>(null);
+  const [openDept, setOpenDept] = useState<string>("");
+  const [selected, setSelected] = useState<OrgMember | null>(null);
   const toast = useToast();
 
-  const DEPARTMENTS = departmentsOf(PEOPLE);
-  // 소개 · 전공을 아직 안 채운 사람
-  const unregistered = PEOPLE.filter((p) => !p.bio && !p.role).length;
+  const byId = useMemo(() => new Map(PEOPLE.map((p) => [p.id, p])), [PEOPLE]);
+  const groupOf = (name: string) => org.groups.find((g) => g.name === name);
+  const inGroup = (p: OrgMember, name: string) => !!groupOf(name)?.members.some((m) => m.memberId === p.id);
+  const teamCount = (t: string) =>
+    t === "전체" ? org.meta.organizationCounts.all ?? PEOPLE.length : org.meta.organizationCounts[t] ?? PEOPLE.filter((p) => p.organizations.includes(t)).length;
+  const open = (id: string) => {
+    const p = byId.get(id);
+    if (p) setSelected(p);
+  };
+
+  const DEPARTMENTS = org.groups.map((g) => g.name);
   const newbies = PEOPLE.filter((p) => p.isNew);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return PEOPLE.filter(
       (p) =>
-        (team === "전체" || teamOf(p) === team) &&
-        (dept === "전체" || p.dept === dept) &&
-        (!q || `${p.name} ${p.dept} ${p.role} ${p.email}`.toLowerCase().includes(q)),
+        (team === "전체" || p.organizations.includes(team)) &&
+        (dept === "전체" || inGroup(p, dept)) &&
+        (!q || `${p.name} ${p.departments.join(" ")} ${p.role} ${p.displaySubtitle} ${p.email}`.toLowerCase().includes(q)),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [PEOPLE, team, dept, query]);
-  const leader = founderOf(PEOPLE);
+  const founder = org.founder;
 
   return (
     <section className="wd-scope np-team-finder">
@@ -46,7 +57,7 @@ export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
             {TEAMS.map((t) => (
               <button type="button" key={t} className={team === t ? "on" : ""} onClick={() => setTeam(t)}>
                 {t}
-                <small>{t === "전체" ? PEOPLE.length : PEOPLE.filter((p) => teamOf(p) === t).length}</small>
+                <small>{teamCount(t)}</small>
               </button>
             ))}
           </div>
@@ -66,7 +77,7 @@ export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
             <span className="ico">+{newbies.length}</span>
             <div>
               <b>이번 주 새 멤버가 합류했어요</b>
-              <p>{newbies.map((p) => `${p.name} (${personLine(p)})`).join(", ")} — 반갑게 맞아주세요.</p>
+              <p>{newbies.map((p) => `${p.name} (${memberLine(p)})`).join(", ")} — 반갑게 맞아주세요.</p>
             </div>
             <div className="wd-avs" style={{ marginLeft: "auto" }}>
               {newbies.map((p) => (
@@ -84,7 +95,7 @@ export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
               <div className="wd-chips">
                 {["전체", ...DEPARTMENTS].map((d) => (
                   <button type="button" key={d} className={`wd-chip ${dept === d ? "on" : ""}`} onClick={() => setDept(d)}>
-                    {d} <small style={{ opacity: 0.6 }}>{d === "전체" ? PEOPLE.length : PEOPLE.filter((p) => p.dept === d).length}</small>
+                    {d} <small style={{ opacity: 0.6 }}>{d === "전체" ? PEOPLE.length : groupOf(d)?.memberCount ?? 0}</small>
                   </button>
                 ))}
               </div>
@@ -102,7 +113,7 @@ export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
                   </div>
                   <b style={{ display: "block", marginTop: 16, fontSize: 14 }}>{p.name}</b>
                   <span className="wd-t10 wd-faint" style={{ display: "block", marginTop: 4 }}>
-                    {personLine(p)}
+                    {memberLine(p)}
                   </span>
                 </button>
               ))}
@@ -119,62 +130,53 @@ export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
                 }}
               />
             )}
-            {unregistered > 0 && (
-              <div className="wd-banner gray" style={{ marginTop: 18 }}>
-                <span className="ico">+{unregistered}</span>
-                <div>
-                  <b>아직 프로필을 채우지 않은 팀원이 {unregistered}명 있어요</b>
-                  <p>내 프로필은 프로필 수정에서 전공 · 한 줄 소개를 채울 수 있어요.</p>
-                </div>
-              </div>
-            )}
           </>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", overflowX: "auto" }}>
-            {leader && (
+            {founder && (
             <>
-            <button type="button" className="wd-card" style={{ width: 240, textAlign: "center", borderColor: "#cdd9f5", background: "linear-gradient(110deg,#fff,#f7f9ff)" }} onClick={() => setSelected(leader)}>
+            <button type="button" className="wd-card" style={{ width: 240, textAlign: "center", borderColor: "var(--t-blue-line)", background: "var(--t-card)" }} onClick={() => open(founder.memberId)}>
               <span style={{ display: "flex", justifyContent: "center" }}>
-                <Av name={leader.name} tone="dark" size="lg" />
+                <Av name={founder.name} tone="dark" size="lg" />
               </span>
-              <b style={{ display: "block", marginTop: 12, fontSize: 14 }}>{leader.name}</b>
-              <span className="wd-t10 wd-faint">{leader.dept} · Founder</span>
+              <b style={{ display: "block", marginTop: 12, fontSize: 14 }}>{founder.name}</b>
+              <span className="wd-t10 wd-faint">{founder.title}</span>
             </button>
             <div style={{ width: 2, height: 30, background: "var(--wd-line)" }} />
             </>
             )}
-            <div className="wd-grid" style={{ gridTemplateColumns: `repeat(${Math.max(DEPARTMENTS.filter((d) => d !== "Leader").length, 1)},minmax(150px,1fr))`, width: "100%", minWidth: 900, borderTop: "2px solid var(--wd-line)", paddingTop: 22 }}>
-              {DEPARTMENTS.filter((d) => d !== "Leader").map((d) => {
-                const members = PEOPLE.filter((p) => p.dept === d);
-                const lead = members.find((p) => p.lead) ?? members[0];
-                const isOpen = openDept === d;
+            <div className="wd-grid" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", width: "100%", borderTop: "2px solid var(--wd-line)", paddingTop: 22, alignItems: "start" }}>
+              {org.groups.map((g) => {
+                const isOpen = openDept === g.id;
                 return (
-                  <div key={d}>
+                  <div key={g.id}>
                     <button
                       type="button"
                       className="wd-card"
                       aria-expanded={isOpen}
-                      style={{ width: "100%", padding: 16, textAlign: "left", borderColor: isOpen ? "#3182f6" : undefined }}
-                      onClick={() => setOpenDept(isOpen ? "" : d)}
+                      style={{ width: "100%", padding: 16, textAlign: "left", borderColor: isOpen ? "var(--t-cobalt)" : undefined }}
+                      onClick={() => setOpenDept(isOpen ? "" : g.id)}
                     >
                       <div className="wd-between">
-                        <b style={{ fontSize: 12 }}>{d}</b>
-                        <span className="wd-t9 wd-faint">{members.length}명</span>
+                        <b style={{ fontSize: 12 }}>{g.name}</b>
+                        <span className="wd-t9 wd-faint">{g.memberCount}명</span>
                       </div>
-                      {lead && (
+                      {g.description && <span className="wd-t9 wd-faint" style={{ display: "block", marginTop: 4 }}>{g.description}</span>}
+                      {g.lead && (
                         <div className="wd-row" style={{ marginTop: 12, gap: 8 }}>
-                          <Av name={lead.name} tone={lead.tone} size="sm" />
-                          <span className="wd-t10">{lead.name}</span>
+                          <Av name={g.lead.name} tone={byId.get(g.lead.memberId)?.tone ?? ""} size="sm" />
+                          <span className="wd-t10">{g.lead.name}</span>
                           <span className="wd-badge" style={{ marginLeft: "auto" }}>리드</span>
                         </div>
                       )}
                     </button>
                     {isOpen && (
                       <div className="wd-card soft" style={{ marginTop: 8, padding: 12 }}>
-                        {members.map((m) => (
-                          <button type="button" key={m.id} className="wd-row wd-t10" style={{ padding: "6px 0", gap: 8, border: 0, background: "none", width: "100%" }} onClick={() => setSelected(m)}>
-                            <Av name={m.name} tone={m.tone} size="sm" />
-                            {m.name}{m.role ? ` · ${m.role}` : ""}
+                        {g.members.map((m) => (
+                          <button type="button" key={m.memberId} className="wd-row wd-t10" style={{ padding: "6px 0", gap: 8, border: 0, background: "none", width: "100%", textAlign: "left" }} onClick={() => open(m.memberId)}>
+                            <Av name={m.name} tone={byId.get(m.memberId)?.tone ?? ""} size="sm" />
+                            <span>{m.name}{m.role ? ` · ${m.role}` : ""}</span>
+                            {m.isLead && <span className="wd-badge" style={{ marginLeft: "auto" }}>리드</span>}
                           </button>
                         ))}
                       </div>
@@ -191,9 +193,10 @@ export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
         <Modal
           eyebrow="MEMBER"
           title={selected.name}
-          sub={personLine(selected)}
+          sub={memberLine(selected)}
           onClose={() => setSelected(null)}
           footer={
+            selected.email ? (
             <>
               <button
                 type="button"
@@ -209,6 +212,7 @@ export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
                 메일 보내기
               </a>
             </>
+            ) : undefined
           }
         >
           <div className="wd-row" style={{ gap: 16, marginBottom: 22 }}>
@@ -232,17 +236,23 @@ export default function TeamFinder({ people: PEOPLE }: { people: Person[] }) {
             </div>
           </div>
           <dl className="wd-kv" style={{ marginBottom: 22 }}>
-            <div><dt>이메일</dt><dd>{selected.email}</dd></div>
-            <div><dt>GitHub</dt><dd>{selected.github || "미등록"}</dd></div>
-            <div><dt>합류일</dt><dd>{selected.joined || "-"}</dd></div>
-            <div><dt>부서</dt><dd>{selected.dept || "미등록"}</dd></div>
+            <div><dt>소속</dt><dd>{selected.organizations.join(" · ") || "-"}</dd></div>
+            <div><dt>부서</dt><dd>{selected.departments.join(" · ") || selected.primaryDepartment || "미등록"}</dd></div>
+            <div><dt>역할</dt><dd>{selected.role || "-"}</dd></div>
+            {selected.majorLead && <div><dt>전공 리더</dt><dd>{selected.majorLead}</dd></div>}
+            {selected.pmPoRoles.length > 0 && (
+              <div><dt>PM · PO</dt><dd>{selected.pmPoRoles.map((r) => `${r.role} (${r.project})`).join(", ")}</dd></div>
+            )}
+            {selected.email && <div><dt>이메일</dt><dd>{selected.email}</dd></div>}
+            {selected.github && <div><dt>GitHub</dt><dd>{selected.github}</dd></div>}
+            {selected.joined && <div><dt>합류일</dt><dd>{selected.joined}</dd></div>}
             {selected.cohort && <div><dt>기수</dt><dd>{selected.cohort}</dd></div>}
           </dl>
           {selected.projects.length > 0 && (
             <>
-              <b className="wd-t10" style={{ color: "#4e5968" }}>참여 프로젝트</b>
+              <b className="wd-t10" style={{ color: "var(--t-muted)" }}>참여 프로젝트</b>
               <div className="wd-stack" style={{ marginTop: 10, gap: 8 }}>
-                {selected.projects.map(([p, r]) => (
+                {selected.projects.map(({ project: p, role: r }) => (
                   <a key={p} className="wd-file" href={`/inhouse/my/projects/${p.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
                     <span className="wd-av sm blue">{p.slice(0, 1)}</span>
                     <div>
