@@ -249,7 +249,7 @@ export const ROLE_OPTIONS = [
   ["FA", "재정 열람 · 수금 등록"],
 ] as const;
 
-export type RoleMember = { id: string; name: string; email: string; dept: string; roles: string[] };
+export type RoleMember = { id: string; name: string; email: string; dept: string; roles: string[]; active: boolean };
 
 export async function fetchRoleMembers(): Promise<RoleMember[]> {
   const all: RoleMember[] = [];
@@ -263,6 +263,8 @@ export async function fetchRoleMembers(): Promise<RoleMember[]> {
         email: str(p.email),
         dept: str(p.dept),
         roles: Array.isArray(p.roles) ? p.roles.map(str) : [],
+        // 서버가 아직 안 내려주면 활성으로 본다
+        active: p.active === undefined && p.isActive === undefined ? true : !!(p.active ?? p.isActive),
       })),
     );
     cursor = page.nextCursor;
@@ -281,3 +283,7 @@ export const setMemberRoles = (userId: string, roles: string[]) =>
 export type NewMember = { name: string; email: string; dept: string; roles: string[] };
 export const createMember = (m: NewMember) => api<Raw>("/admin/users", { method: "POST", body: m });
 export const deleteMember = (userId: string) => api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
+
+// 계정 비활성화 (로그인 막기, 삭제는 아님): 백엔드에 아직 없음. PATCH /admin/users/{id} { active }
+export const setMemberActive = (userId: string, active: boolean) =>
+  api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "PATCH", body: { active } });

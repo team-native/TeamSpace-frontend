@@ -5,7 +5,7 @@ import AdminShell from "@/components/inhouse/AdminShell";
 import EmptyState from "@/components/inhouse/EmptyState";
 import { Av, Modal, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
-import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, setMemberRoles, type NewMember, type RoleMember } from "@/lib/admin-api";
+import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, setFinancePermission, setMemberActive, setMemberRoles, type NewMember, type RoleMember } from "@/lib/admin-api";
 import { DEPARTMENTS } from "@/lib/shared";
 import { isAdminRole, loadMe, useMe } from "@/lib/session";
 
@@ -17,7 +17,9 @@ const notYet = (e: unknown, what: string) =>
       : `${what}하지 못했어요.`;
 const EMPTY: NewMember = { name: "", email: "", dept: "", roles: [] };
 
-// 멤버 권한: 목록 GET /people · 역할 PATCH /admin/users/{id}/roles · 추가 POST /admin/users · 삭제 DELETE /admin/users/{id} (Admin 만)
+// 멤버 권한 (Admin 만): 목록 GET /people
+// FA 는 이미 있는 재정 권한 API(PATCH /admin/finance/permissions/{id}), Admin · Leader 는 PATCH /admin/users/{id}/roles
+// 비활성화 PATCH /admin/users/{id} { active } · 추가 POST /admin/users · 삭제 DELETE /admin/users/{id}
 export default function AdminMembers() {
   const toast = useToast();
   const { me } = useMe();
@@ -60,13 +62,31 @@ export default function AdminMembers() {
     const next = on ? [...m.roles, role] : m.roles.filter((r) => r !== role);
     setBusy(m.id);
     try {
-      const r = await setMemberRoles(m.id, next);
+      const r = role === "FA" ? await setFinancePermission(m.id, on) : await setMemberRoles(m.id, next);
       const roles = Array.isArray(r?.roles) ? r.roles : next;
       setRows((rs) => rs?.map((x) => (x.id === m.id ? { ...x, roles } : x)) ?? null);
       if (m.id === me?.id) loadMe(true);
       toast.show(on ? `${m.name}님에게 ${role} 역할을 줬어요` : `${m.name}님의 ${role} 역할을 뺐어요`);
     } catch (e) {
       toast.show(notYet(e, "역할 변경"));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const setActive = async (m: RoleMember) => {
+    if (busy) return;
+    if (m.active && m.roles.includes("Admin") && adminCount <= 1) {
+      toast.show("마지막 Admin은 비활성화할 수 없어요");
+      return;
+    }
+    setBusy(m.id);
+    try {
+      await setMemberActive(m.id, !m.active);
+      setRows((rs) => rs?.map((x) => (x.id === m.id ? { ...x, active: !m.active } : x)) ?? null);
+      toast.show(m.active ? `${m.name}님 계정을 비활성화했어요` : `${m.name}님 계정을 다시 켰어요`);
+    } catch (e) {
+      toast.show(notYet(e, "비활성화"));
     } finally {
       setBusy("");
     }
@@ -120,7 +140,7 @@ export default function AdminMembers() {
   return (
     <AdminShell
       title="멤버 권한"
-      sub="역할을 켜고 끄면 바로 적용돼요. 역할이 하나도 없으면 일반 멤버예요."
+      sub="역할을 켜고 끄면 바로 적용돼요. 역할이 없으면 일반 멤버, 계정을 끄면 로그인할 수 없어요."
       right={
         <span className="wd-row" style={{ gap: 8 }}>
           <label className="wd-search" style={{ width: 240 }}>
@@ -161,12 +181,13 @@ export default function AdminMembers() {
                     {role}
                   </th>
                 ))}
+                <th>계정</th>
                 <th className="num" />
               </tr>
             </thead>
             <tbody>
               {shown.map((m) => (
-                <tr key={m.id}>
+                <tr key={m.id} style={m.active ? undefined : { opacity: 0.5 }}>
                   <td>
                     <span className="wd-row" style={{ gap: 10 }}>
                       <Av name={m.name} size="sm" />
@@ -191,6 +212,17 @@ export default function AdminMembers() {
                       />
                     </td>
                   ))}
+                  <td>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={m.active}
+                      aria-label={`${m.name} 계정 활성`}
+                      disabled={busy === m.id || m.id === me?.id}
+                      className={`wd-toggle ${m.active ? "on" : ""}`}
+                      onClick={() => setActive(m)}
+                    />
+                  </td>
                   <td className="num">
                     {m.id !== me?.id && (
                       <button type="button" className="wd-btn ghost sm" disabled={busy === m.id} onClick={() => setRemoving(m)}>
@@ -202,7 +234,7 @@ export default function AdminMembers() {
               ))}
               {shown.length === 0 && (
                 <tr>
-                  <td colSpan={3 + ROLE_OPTIONS.length} className="wd-faint">
+                  <td colSpan={4 + ROLE_OPTIONS.length} className="wd-faint">
                     {query ? "검색 결과가 없어요." : "아직 멤버가 없어요."}
                   </td>
                 </tr>
