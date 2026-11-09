@@ -20,6 +20,7 @@ const NAV: [string, string, (keyof Counts)?][] = [
   ["문서 개정", "/inhouse/admin/documents/new"],
   ["문의 답변", "/inhouse/admin/inquiries", "inquiries"],
   ["신고 처리", "/inhouse/admin/reports", "reports"],
+  ["멤버 권한", "/inhouse/admin/members"],
   ["재정 권한", "/inhouse/admin/finance-roles"],
   ["수주 · 입금", "/inhouse/admin/income", "income"],
 ];

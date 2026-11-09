@@ -225,3 +225,42 @@ export async function fetchSignupRequests(max = 300): Promise<SignupRequest[]> {
 
 export const approveSignupRequest = (id: string) =>
   api<Raw>(`/admin/signup-requests/${encodeURIComponent(id)}/approve`, { method: "POST", body: {} });
+
+// 반려: 백엔드에 아직 없음. 합의한 모양 POST /admin/signup-requests/{id}/reject { reason }
+export const rejectSignupRequest = (id: string, reason: string) =>
+  api<Raw>(`/admin/signup-requests/${encodeURIComponent(id)}/reject`, { method: "POST", body: { reason } });
+
+// ---- 멤버 역할 ----
+
+// 관리자가 주고 뺄 수 있는 역할. 아무것도 없으면 일반 멤버
+export const ROLE_OPTIONS = [
+  ["Admin", "운영 관리 전체 · 역할 변경"],
+  ["Leader", "공지 · 일정 · 재정 열람"],
+  ["FA", "재정 열람 · 수금 등록"],
+] as const;
+
+export type RoleMember = { id: string; name: string; email: string; dept: string; roles: string[] };
+
+export async function fetchRoleMembers(): Promise<RoleMember[]> {
+  const all: RoleMember[] = [];
+  let cursor: string | null = null;
+  for (let i = 0; i < 20; i++) {
+    const page: Page = await api<Page>("/people", { query: { limit: 100, cursor: cursor ?? undefined } });
+    all.push(
+      ...page.items.map((p) => ({
+        id: str(p.id),
+        name: str(p.name) || "이름 없음",
+        email: str(p.email),
+        dept: str(p.dept),
+        roles: Array.isArray(p.roles) ? p.roles.map(str) : [],
+      })),
+    );
+    cursor = page.nextCursor;
+    if (!cursor) break;
+  }
+  return all;
+}
+
+// 역할 변경: 백엔드에 아직 없음. 합의한 모양 PATCH /admin/users/{id}/roles { roles } → { id, roles }
+export const setMemberRoles = (userId: string, roles: string[]) =>
+  api<{ id: string; roles: string[] }>(`/admin/users/${encodeURIComponent(userId)}/roles`, { method: "PATCH", body: { roles } });
