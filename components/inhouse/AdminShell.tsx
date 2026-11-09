@@ -21,7 +21,6 @@ const NAV: [string, string, (keyof Counts)?][] = [
   ["문의 답변", "/inhouse/admin/inquiries", "inquiries"],
   ["신고 처리", "/inhouse/admin/reports", "reports"],
   ["멤버 권한", "/inhouse/admin/members"],
-  ["재정 권한", "/inhouse/admin/finance-roles"],
   ["수주 · 입금", "/inhouse/admin/income", "income"],
 ];
 
@@ -95,7 +94,7 @@ export default function AdminShell({ title, sub, right, children }: { title: str
             })}
           </nav>
           <p className="wd-t9 wd-faint" style={{ padding: "22px 12px 0", lineHeight: 1.6 }}>
-            Leader · NativeOps · FA 권한이 있는 사람만 보여요.
+            Admin · Leader · FA 역할이 있는 사람만 보여요.
           </p>
         </aside>
         <main>
