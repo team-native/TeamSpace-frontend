@@ -50,23 +50,28 @@ export default function AdminMembers() {
   }, [rows, query]);
   const adminCount = (rows ?? []).filter((m) => m.roles.includes("Admin")).length;
 
-  const toggle = async (m: RoleMember, role: string) => {
-    if (busy) return;
-    const on = !m.roles.includes(role);
-    // 마지막 Admin 이 자기 Admin 을 빼면 아무도 관리 화면에 못 들어온다
-    if (!on && role === "Admin" && adminCount <= 1) {
+  // 한 사람에 역할 하나: Admin > Leader > FA > 일반 멤버
+  const roleOf = (m: RoleMember) => ROLE_OPTIONS.map(([r]) => r as string).find((r) => m.roles.includes(r)) ?? "";
+
+  const changeRole = async (m: RoleMember, role: string) => {
+    const prev = roleOf(m);
+    if (busy || role === prev) return;
+    // 마지막 Admin 이 Admin 을 잃으면 아무도 관리 화면에 못 들어온다
+    if (prev === "Admin" && adminCount <= 1) {
       toast.show("Admin이 최소 한 명은 있어야 해요");
       return;
     }
-    if (!on && role === "Admin" && m.id === me?.id && !window.confirm("내 Admin 역할을 빼면 이 화면에 다시 들어올 수 없어요. 계속할까요?")) return;
-    const next = on ? [...m.roles, role] : m.roles.filter((r) => r !== role);
+    if (prev === "Admin" && m.id === me?.id && !window.confirm("내 Admin 역할을 바꾸면 이 화면에 다시 들어올 수 없어요. 계속할까요?")) return;
+    const next = role ? [role] : [];
     setBusy(m.id);
     try {
-      const r = role === "FA" ? await setFinancePermission(m.id, on) : await setMemberRoles(m.id, next);
+      // 일반 멤버 ↔ FA 는 이미 있는 재정 권한 API 로 바꿀 수 있다
+      const financeOnly = (prev === "" || prev === "FA") && (role === "" || role === "FA");
+      const r = financeOnly ? await setFinancePermission(m.id, role === "FA") : await setMemberRoles(m.id, next);
       const roles = Array.isArray(r?.roles) ? r.roles : next;
       setRows((rs) => rs?.map((x) => (x.id === m.id ? { ...x, roles } : x)) ?? null);
       if (m.id === me?.id) loadMe(true);
-      toast.show(on ? `${m.name}님에게 ${role} 역할을 줬어요` : `${m.name}님의 ${role} 역할을 뺐어요`);
+      toast.show(`${m.name}님 역할을 ${role || "일반 멤버"}(으)로 바꿨어요`);
     } catch (e) {
       toast.show(notYet(e, "역할 변경"));
     } finally {
@@ -140,7 +145,7 @@ export default function AdminMembers() {
   return (
     <AdminShell
       title="멤버 권한"
-      sub="역할을 켜고 끄면 바로 적용돼요. 역할이 없으면 일반 멤버, 계정을 끄면 로그인할 수 없어요."
+      sub="역할을 고르면 바로 적용돼요. 계정을 끄면 로그인할 수 없어요."
       right={
         <span className="wd-row" style={{ gap: 8 }}>
           <label className="wd-search" style={{ width: 240 }}>
@@ -176,11 +181,7 @@ export default function AdminMembers() {
               <tr>
                 <th>이름</th>
                 <th>부서</th>
-                {ROLE_OPTIONS.map(([role, desc]) => (
-                  <th key={role} title={desc}>
-                    {role}
-                  </th>
-                ))}
+                <th>역할</th>
                 <th>계정</th>
                 <th className="num" />
               </tr>
@@ -199,19 +200,23 @@ export default function AdminMembers() {
                     </span>
                   </td>
                   <td>{m.dept || "-"}</td>
-                  {ROLE_OPTIONS.map(([role]) => (
-                    <td key={role}>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={m.roles.includes(role)}
-                        aria-label={`${m.name} ${role} 역할`}
-                        disabled={busy === m.id}
-                        className={`wd-toggle ${m.roles.includes(role) ? "on" : ""}`}
-                        onClick={() => toggle(m, role)}
-                      />
-                    </td>
-                  ))}
+                  <td>
+                    <select
+                      className="wd-input"
+                      aria-label={`${m.name} 역할`}
+                      value={roleOf(m)}
+                      disabled={busy === m.id}
+                      onChange={(e) => changeRole(m, e.target.value)}
+                      style={{ width: 150, minHeight: 36 }}
+                    >
+                      <option value="">일반 멤버</option>
+                      {ROLE_OPTIONS.map(([role]) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
                   <td>
                     <button
                       type="button"
@@ -234,7 +239,7 @@ export default function AdminMembers() {
               ))}
               {shown.length === 0 && (
                 <tr>
-                  <td colSpan={4 + ROLE_OPTIONS.length} className="wd-faint">
+                  <td colSpan={5} className="wd-faint">
                     {query ? "검색 결과가 없어요." : "아직 멤버가 없어요."}
                   </td>
                 </tr>
@@ -278,21 +283,14 @@ export default function AdminMembers() {
                 </option>
               ))}
             </select>
-            <div className="wd-chips">
-              {ROLE_OPTIONS.map(([role]) => {
-                const on = draft.roles.includes(role);
-                return (
-                  <button
-                    type="button"
-                    key={role}
-                    className={`wd-chip ${on ? "on" : ""}`}
-                    onClick={() => setDraft({ ...draft, roles: on ? draft.roles.filter((r) => r !== role) : [...draft.roles, role] })}
-                  >
-                    {role}
-                  </button>
-                );
-              })}
-            </div>
+            <select className="wd-input" value={draft.roles[0] ?? ""} onChange={(e) => setDraft({ ...draft, roles: e.target.value ? [e.target.value] : [] })}>
+              <option value="">역할: 일반 멤버</option>
+              {ROLE_OPTIONS.map(([role, desc]) => (
+                <option key={role} value={role}>
+                  {role} · {desc}
+                </option>
+              ))}
+            </select>
           </div>
         </Modal>
       )}
