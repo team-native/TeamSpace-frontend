@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { initial, toneOf, type Tone } from "@/lib/shared";
+import { createPortal } from "react-dom";
 import ModalPortal from "./ModalPortal";
 
 export function Eyebrow({ children }: { children: ReactNode }) {
@@ -121,12 +122,19 @@ export function useToast() {
     timer.current = setTimeout(() => setMessage(""), 2000);
   }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
-  const node = message ? (
-    <div className="wd-toast" role="status">
-      <i>✓</i>
-      {message}
-    </div>
-  ) : null;
+  // 모달(body 로 portal) 위에도 보이도록 토스트도 body 에 붙인다
+  const node =
+    message && typeof document !== "undefined"
+      ? createPortal(
+          <div className="wd-scope">
+            <div className="wd-toast" role="status">
+              <i>✓</i>
+              {message}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
   return { show, node };
 }
 

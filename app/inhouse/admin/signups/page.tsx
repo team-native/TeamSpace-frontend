@@ -5,7 +5,7 @@ import AdminShell, { refreshAdminCounts } from "@/components/inhouse/AdminShell"
 import EmptyState from "@/components/inhouse/EmptyState";
 import { Av, Modal, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
-import { approveSignupRequest, fetchSignupRequests, rejectSignupRequest, type SignupRequest } from "@/lib/admin-api";
+import { approveSignupRequest, fetchSignupRequests, markSignupsSeen, rejectSignupRequest, type SignupRequest } from "@/lib/admin-api";
 import { relTime } from "@/lib/board";
 
 const TABS = [
@@ -31,7 +31,11 @@ export default function AdminSignups() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setRows(await fetchSignupRequests());
+      const list = await fetchSignupRequests();
+      setRows(list);
+      // 한 번 봤으면 메뉴의 숫자는 지운다
+      markSignupsSeen(list);
+      refreshAdminCounts();
     } catch (e) {
       setError({ status: e instanceof ApiError ? e.status : 0, message: e instanceof Error ? e.message : "가입 요청을 불러오지 못했어요." });
     }
