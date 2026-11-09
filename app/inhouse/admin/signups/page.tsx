@@ -5,12 +5,13 @@ import AdminShell, { refreshAdminCounts } from "@/components/inhouse/AdminShell"
 import EmptyState from "@/components/inhouse/EmptyState";
 import { Av, Modal, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
-import { approveSignupRequest, fetchSignupRequests, type SignupRequest } from "@/lib/admin-api";
+import { approveSignupRequest, fetchSignupRequests, rejectSignupRequest, type SignupRequest } from "@/lib/admin-api";
 import { relTime } from "@/lib/board";
 
 const TABS = [
   ["PENDING", "대기"],
   ["APPROVED", "승인됨"],
+  ["REJECTED", "반려"],
   ["ALL", "전체"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
@@ -24,6 +25,8 @@ export default function AdminSignups() {
   const [tab, setTab] = useState<Tab>("PENDING");
   const [confirm, setConfirm] = useState<SignupRequest | null>(null);
   const [busy, setBusy] = useState(false);
+  const [rejecting, setRejecting] = useState<SignupRequest | null>(null);
+  const [reason, setReason] = useState("");
 
   const load = useCallback(async () => {
     setError(null);
@@ -54,6 +57,28 @@ export default function AdminSignups() {
       setConfirm(null);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : "승인하지 못했어요.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reject = async (r: SignupRequest) => {
+    setBusy(true);
+    try {
+      await rejectSignupRequest(r.id, reason.trim());
+      setRows((rs) => rs?.map((x) => (x.id === r.id ? { ...x, status: "REJECTED" } : x)) ?? null);
+      refreshAdminCounts();
+      toast.show(`${r.name || r.email}님 가입 요청을 반려했어요`);
+      setRejecting(null);
+      setReason("");
+    } catch (e) {
+      toast.show(
+        e instanceof ApiError && (e.status === 404 || e.status === 405)
+          ? "서버에 아직 반려 기능이 없어요"
+          : e instanceof Error
+            ? e.message
+            : "반려하지 못했어요.",
+      );
     } finally {
       setBusy(false);
     }
@@ -127,11 +152,16 @@ export default function AdminSignups() {
                       <td className="wd-t10 wd-faint">{relTime(r.createdAt) || "-"}</td>
                       <td className="num">
                         {r.status === "PENDING" ? (
-                          <button type="button" className="wd-btn sm" onClick={() => setConfirm(r)}>
-                            승인
-                          </button>
+                          <span className="wd-row" style={{ gap: 6, justifyContent: "flex-end" }}>
+                            <button type="button" className="wd-btn ghost sm" onClick={() => setRejecting(r)}>
+                              반려
+                            </button>
+                            <button type="button" className="wd-btn sm" onClick={() => setConfirm(r)}>
+                              승인
+                            </button>
+                          </span>
                         ) : (
-                          <span className={`wd-badge ${r.status === "APPROVED" ? "green" : ""}`}>{STATUS_LABEL[r.status] ?? r.status}</span>
+                          <span className={`wd-badge ${r.status === "APPROVED" ? "green" : r.status === "REJECTED" ? "red" : ""}`}>{STATUS_LABEL[r.status] ?? r.status}</span>
                         )}
                       </td>
                     </tr>
@@ -163,6 +193,38 @@ export default function AdminSignups() {
           <p className="wd-t11" style={{ margin: 0, lineHeight: 1.7 }}>
             승인하면 이 이메일로 로그인할 수 있고, 팀원 목록에 {confirm.dept ? `${confirm.dept} 소속으로 ` : ""}추가돼요.
           </p>
+        </Modal>
+      )}
+      {rejecting && (
+        <Modal
+          eyebrow="SIGNUP"
+          title={`${rejecting.name || rejecting.email}님 가입 요청을 반려할까요?`}
+          sub={rejecting.email}
+          onClose={() => !busy && setRejecting(null)}
+          footer={
+            <>
+              <button type="button" className="wd-btn ghost" onClick={() => setRejecting(null)} disabled={busy}>
+                취소
+              </button>
+              <button type="button" className="wd-btn danger" onClick={() => reject(rejecting)} disabled={busy}>
+                {busy ? "반려하는 중…" : "반려"}
+              </button>
+            </>
+          }
+        >
+          <label className="wd-t10 wd-faint" htmlFor="reject-reason" style={{ display: "block", marginBottom: 8 }}>
+            반려 사유 (선택)
+          </label>
+          <textarea
+            id="reject-reason"
+            className="wd-input"
+            rows={3}
+            maxLength={300}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="예: 기수 확인이 필요해요"
+            style={{ width: "100%", resize: "vertical" }}
+          />
         </Modal>
       )}
       {toast.node}
