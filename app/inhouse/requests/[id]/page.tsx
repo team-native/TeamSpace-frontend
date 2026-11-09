@@ -1,63 +1,116 @@
 "use client";
 
 import Link from "next/link";
-import { notFound, useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import Attachments from "@/components/inhouse/Attachments";
+import EmptyState from "@/components/inhouse/EmptyState";
 import WdPage from "@/components/inhouse/WdPage";
 import { Av, Confirm, Modal, useToast } from "@/components/inhouse/ui";
-import { APPROVALS, APPROVAL_TONE, ME, type Approval } from "@/lib/demo";
+import { ApiError } from "@/lib/api";
+import { APPROVAL_TONE, addApprovalComment, approve, cancelApproval, fetchApproval, reject, type Approval } from "@/lib/approvals";
+import { useMe } from "@/lib/session";
 
 const REJECT_REASONS = ["금액 조정이 필요해요", "증빙이 부족해요", "예산 범위를 넘어요", "직접 입력"];
+const errMsg = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 
+// GET /approvals/{id} · approve · reject · cancel · comments
 export default function ApprovalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
-  const found = APPROVALS.find((a) => a.id === id);
-  const [approval, setApproval] = useState<Approval | undefined>(found);
+  const { me } = useMe();
+  const [approval, setApproval] = useState<Approval | null | undefined>(undefined);
+  const [loadError, setLoadError] = useState("");
   const [comment, setComment] = useState("");
   const [opinion, setOpinion] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectPick, setRejectPick] = useState(REJECT_REASONS[0]);
   const [rejectText, setRejectText] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [decided, setDecided] = useState<"" | "승인" | "반려" | "취소">("");
+  const [busy, setBusy] = useState(false);
 
-  if (!approval) return notFound();
-  const myTurn = approval.received && !decided;
-  const canManage = !approval.received && !["승인", "반려"].includes(approval.status) && !decided;
+  const load = useCallback(async () => {
+    setLoadError("");
+    try {
+      setApproval(await fetchApproval(id));
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) setApproval(null);
+      else setLoadError(errMsg(e, "결재를 불러오지 못했어요."));
+    }
+  }, [id]);
 
-  const addComment = (text: string) =>
-    setApproval({ ...approval, comments: [...approval.comments, { who: ME.name, whoId: ME.id, meta: "방금", text }] });
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (loadError || approval === undefined || approval === null)
+    return (
+      <WdPage active="requests">
+        <div className="wd-wrap wd-pb" style={{ paddingTop: 60 }}>
+          {loadError ? (
+            <EmptyState icon="!" title="결재를 불러오지 못했어요" description={loadError} actionLabel="다시 시도" onAction={() => void load()} />
+          ) : approval === null ? (
+            <EmptyState icon="?" title="결재를 찾을 수 없어요" description="기안자와 결재선에 있는 사람만 볼 수 있어요." actionLabel="결재함" onAction={() => router.push("/inhouse/requests#box")} />
+          ) : (
+            <div className="wd-muted wd-t11" aria-busy="true" style={{ padding: 48, textAlign: "center" }}>
+              결재를 불러오는 중…
+            </div>
+          )}
+        </div>
+      </WdPage>
+    );
+
+  const myId = me?.id ?? "";
+  const isAuthor = approval.authorId === myId;
+  const myStep = approval.line.find((l) => l.userId === myId && l.role !== "기안");
+  const myTurn = myStep?.state === "now" && ["결재 대기", "검토 중"].includes(approval.status);
+  const canCancel = isAuthor && ["작성 중", "결재 대기", "검토 중"].includes(approval.status);
+  const canEdit = isAuthor && ["작성 중", "반려"].includes(approval.status);
+  const next = approval.line.find((l) => l.state === "wait");
+
+  const run = async (fn: () => Promise<unknown>, done: string) => {
+    setBusy(true);
+    try {
+      await fn();
+      await load();
+      toast.show(done);
+    } catch (e) {
+      toast.show(errMsg(e, "처리하지 못했어요."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const postComment = async (text: string) => {
+    const c = await addApprovalComment(approval.id, text);
+    setApproval((a) => (a ? { ...a, comments: [...a.comments, c] } : a));
+  };
 
   return (
     <WdPage active="requests">
       <div className="wd-wrap wd-pb">
         <div className="wd-crumb">
-          <Link href="/inhouse/requests">결재</Link> › <Link href={`/inhouse/requests${approval.received ? "?tab=received" : ""}#box`}>{approval.received ? "받은 결재" : "내가 올린 결재"}</Link> › <b>{approval.title}</b>
+          <Link href="/inhouse/requests">결재</Link> › <Link href={`/inhouse/requests${isAuthor ? "" : "?tab=received"}#box`}>{isAuthor ? "내가 올린 결재" : "받은 결재"}</Link> › <b>{approval.title}</b>
         </div>
         <div style={{ height: 24 }} />
         <div className="wd-side">
           <div className="wd-card" style={{ padding: 28 }}>
             <div className="wd-between" style={{ marginBottom: 22, flexWrap: "wrap" }}>
               <div>
-                <span className={`wd-badge ${decided === "승인" ? "green" : decided ? "red" : APPROVAL_TONE[approval.status]}`}>
-                  {decided ? (decided === "취소" ? "요청 취소" : decided) : approval.status}
-                </span>
+                <span className={`wd-badge ${APPROVAL_TONE[approval.status]}`}>{approval.status === "취소" ? "요청 취소" : approval.status}</span>
                 <h2 style={{ margin: "12px 0 6px", fontSize: 24, letterSpacing: "-.04em" }}>{approval.title}</h2>
-                <span className="wd-t10 wd-faint">
-                  {approval.kind} · {approval.type} · {approval.author} · {approval.date}
-                </span>
+                <span className="wd-t10 wd-faint">{[approval.kind, approval.type, approval.author, approval.date].filter(Boolean).join(" · ")}</span>
               </div>
               <div className="wd-stat" style={{ textAlign: "right" }}>
-                <small>{approval.kind === "비용 승인" ? "요청 금액" : "투입 기간"}</small>
-                <strong>{approval.amount}</strong>
+                <small>{approval.kind === "인력 지원" ? "투입 기간" : "요청 금액"}</small>
+                <strong>{approval.amount || "-"}</strong>
               </div>
             </div>
 
             {approval.status === "반려" && approval.rejectReason && (
-              <div className="wd-banner" style={{ background: "#fff0f1", marginBottom: 22 }}>
-                <span className="ico" style={{ color: "#f04452" }}>!</span>
+              <div className="wd-banner danger" style={{ marginBottom: 22 }}>
+                <span className="ico" style={{ color: "var(--t-red)" }}>!</span>
                 <div>
                   <b>반려 사유</b>
                   <p>{approval.rejectReason}</p>
@@ -65,57 +118,53 @@ export default function ApprovalDetailPage() {
               </div>
             )}
 
-            <div className="wd-card soft" style={{ padding: "18px 10px", marginBottom: 22 }}>
-              <div className="wd-line">
-                {approval.line.map((l) => {
-                  const state = decided === "승인" && l.state === "now" ? "done" : l.state;
-                  return (
-                    <div key={l.role} className={state === "done" ? "done" : state === "now" ? "now" : ""}>
-                      <span className="wd-av">{state === "done" ? "✓" : l.who.slice(1, 2)}</span>
+            {approval.line.length > 0 && (
+              <div className="wd-card soft" style={{ padding: "18px 10px", marginBottom: 22 }}>
+                <div className="wd-line">
+                  {approval.line.map((l, i) => (
+                    <div key={`${l.userId}-${i}`} className={l.state === "done" ? "done" : l.state === "now" ? "now" : ""}>
+                      <span className="wd-av">{l.state === "done" ? "✓" : l.who.slice(1, 2) || l.who.slice(0, 1)}</span>
                       <b>
                         {l.who} · {l.role}
                       </b>
-                      <small>{state === "done" && decided === "승인" && l.state === "now" ? "방금 승인" : l.at}</small>
+                      <small>{l.at}</small>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <dl className="wd-kv" style={{ marginBottom: 22 }}>
-              <div><dt>{approval.kind === "비용 승인" ? "사용 예정일" : "투입 기간"}</dt><dd>{approval.useDate}</dd></div>
-              <div><dt>연결 프로젝트</dt><dd>{approval.project}</dd></div>
+              {approval.kind === "인력 지원" ? (
+                <div>
+                  <dt>필요 직군</dt>
+                  <dd>{Object.entries(approval.staff).filter(([, n]) => n > 0).map(([r, n]) => `${r} ${n}명`).join(", ") || approval.type || "-"}</dd>
+                </div>
+              ) : (
+                <div>
+                  <dt>사용 예정일</dt>
+                  <dd>{approval.useDate || "-"}</dd>
+                </div>
+              )}
+              <div>
+                <dt>연결 프로젝트</dt>
+                <dd>{approval.project || "-"}</dd>
+              </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <dt>요청 사유</dt>
-                <dd style={{ fontWeight: 500, lineHeight: 1.7 }}>{approval.reason || "아직 작성하지 않았어요."}</dd>
+                <dd style={{ fontWeight: 500, lineHeight: 1.7, whiteSpace: "pre-line" }}>{approval.reason || "아직 작성하지 않았어요."}</dd>
               </div>
             </dl>
 
-            <b className="wd-t10" style={{ color: "#4e5968" }}>첨부파일 {approval.files.length}</b>
-            {approval.files.length ? (
-              <div className="wd-grid g2" style={{ marginTop: 10 }}>
-                {approval.files.map(([ext, name, size]) => (
-                  <div key={name} className="wd-file">
-                    <span className={`ext ${ext === "JPG" ? "img" : ""}`}>{ext}</span>
-                    <div>
-                      <b>{name}</b>
-                      <small>{size}</small>
-                    </div>
-                    <span className="end">↓</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="wd-t10 wd-faint" style={{ margin: "8px 0 0" }}>첨부한 파일이 없어요.</p>
-            )}
+            {approval.files.length ? <Attachments files={approval.files} title="첨부파일" /> : <p className="wd-t10 wd-faint" style={{ margin: "8px 0 0" }}>첨부한 파일이 없어요.</p>}
           </div>
 
           <aside className="wd-stack">
-            {approval.received ? (
-              <section className="wd-card" style={myTurn ? { borderColor: "#3182f6", boxShadow: "0 0 0 4px #3182f614" } : undefined}>
+            {myStep ? (
+              <section className="wd-card" style={myTurn ? { borderColor: "var(--t-cobalt)", boxShadow: "0 0 0 4px #3182f614" } : undefined}>
                 <div className="wd-card-head">
                   <h3>내 검토</h3>
-                  <span className={`wd-badge ${myTurn ? "blue" : decided === "승인" ? "green" : "red"}`}>{myTurn ? "내 차례" : `${decided} 완료`}</span>
+                  <span className={`wd-badge ${myTurn ? "blue" : myStep.state === "done" ? "green" : ""}`}>{myTurn ? "내 차례" : myStep.state === "done" ? "처리 완료" : "앞 단계 대기"}</span>
                 </div>
                 {myTurn ? (
                   <>
@@ -126,24 +175,27 @@ export default function ApprovalDetailPage() {
                       <textarea className="wd-input" style={{ minHeight: 90 }} value={opinion} onChange={(e) => setOpinion(e.target.value)} placeholder="승인 조건이나 참고할 내용을 남겨주세요" />
                     </label>
                     <div className="wd-row">
-                      <button type="button" className="wd-btn danger" style={{ flex: 1 }} onClick={() => setRejectOpen(true)}>
+                      <button type="button" className="wd-btn danger" style={{ flex: 1 }} disabled={busy} onClick={() => setRejectOpen(true)}>
                         반려
                       </button>
                       <button
                         type="button"
                         className="wd-btn blue"
                         style={{ flex: 2 }}
-                        onClick={() => {
-                          if (opinion.trim()) addComment(opinion.trim());
-                          setDecided("승인");
-                          toast.show("승인했어요. 다음 결재자에게 알림이 갔어요.");
-                        }}
+                        disabled={busy}
+                        onClick={() =>
+                          void run(async () => {
+                            if (opinion.trim()) await postComment(opinion.trim());
+                            await approve(approval.id);
+                            setOpinion("");
+                          }, next ? "승인했어요. 다음 결재자에게 알림이 갔어요." : "최종 승인했어요.")
+                        }
                       >
-                        승인하기
+                        {busy ? "처리 중…" : "승인하기"}
                       </button>
                     </div>
                     <p className="wd-t9 wd-faint" style={{ margin: "10px 0 0", textAlign: "center" }}>
-                      승인하면 {approval.line.find((l) => l.state === "wait")?.who ?? "기안자"}님에게 다음 단계 알림이 가요
+                      승인하면 {next?.who ?? "기안자"}님에게 {next ? "다음 단계" : "결과"} 알림이 가요
                     </p>
                   </>
                 ) : (
@@ -153,33 +205,42 @@ export default function ApprovalDetailPage() {
                 )}
               </section>
             ) : (
-              <section className="wd-card">
-                <h3 style={{ fontSize: 12 }}>요청 관리</h3>
-                <p className="wd-t9 wd-faint" style={{ margin: "6px 0 14px" }}>
-                  {canManage ? "최종 승인 전까지 수정하거나 취소할 수 있어요." : "처리가 끝난 결재는 수정할 수 없어요."}
-                </p>
-                <div className="wd-row">
-                  <Link
-                    className="wd-btn line"
-                    style={{ flex: 1, pointerEvents: canManage ? undefined : "none", opacity: canManage ? 1 : 0.4 }}
-                    href={`/inhouse/requests/new?type=${approval.kind === "비용 승인" ? "expense" : "project"}&edit=${approval.id}`}
-                  >
-                    수정하기
-                  </Link>
-                  <button type="button" className="wd-btn danger" style={{ flex: 1 }} disabled={!canManage} onClick={() => setCancelOpen(true)}>
-                    요청 취소
-                  </button>
-                </div>
-              </section>
+              isAuthor && (
+                <section className="wd-card">
+                  <h3 style={{ fontSize: 12 }}>요청 관리</h3>
+                  <p className="wd-t9 wd-faint" style={{ margin: "6px 0 14px" }}>
+                    {canEdit
+                      ? approval.status === "반려"
+                        ? "고쳐서 다시 올릴 수 있어요."
+                        : "이어서 작성하고 올릴 수 있어요."
+                      : canCancel
+                        ? "검토 중인 결재는 고칠 수 없고 취소만 할 수 있어요."
+                        : "처리가 끝난 결재는 바꿀 수 없어요."}
+                  </p>
+                  <div className="wd-row">
+                    <Link
+                      className="wd-btn line"
+                      style={{ flex: 1, pointerEvents: canEdit ? undefined : "none", opacity: canEdit ? 1 : 0.4 }}
+                      aria-disabled={!canEdit}
+                      href={`/inhouse/requests/new?type=${approval.kind === "인력 지원" ? "project" : "expense"}&edit=${approval.id}`}
+                    >
+                      {approval.status === "반려" ? "고쳐서 다시 올리기" : "수정하기"}
+                    </Link>
+                    <button type="button" className="wd-btn danger" style={{ flex: 1 }} disabled={!canCancel || busy} onClick={() => setCancelOpen(true)}>
+                      요청 취소
+                    </button>
+                  </div>
+                </section>
+              )
             )}
 
             <section className="wd-card">
               <div className="wd-card-head">
                 <h3>코멘트 {approval.comments.length}</h3>
               </div>
-              {approval.comments.map((c, i) => (
-                <div key={i} className="wd-comment">
-                  <Av name={c.who} id={c.whoId} />
+              {approval.comments.map((c) => (
+                <div key={c.id} className="wd-comment">
+                  <Av name={c.who} />
                   <div>
                     <header>
                       {c.who} <small>{c.meta}</small>
@@ -191,11 +252,15 @@ export default function ApprovalDetailPage() {
               <form
                 className="wd-row"
                 style={{ marginTop: 8 }}
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   if (!comment.trim()) return;
-                  addComment(comment.trim());
-                  setComment("");
+                  try {
+                    await postComment(comment.trim());
+                    setComment("");
+                  } catch (err) {
+                    toast.show(errMsg(err, "코멘트를 남기지 못했어요."));
+                  }
                 }}
               >
                 <input className="wd-input" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="코멘트 남기기" />
@@ -224,12 +289,11 @@ export default function ApprovalDetailPage() {
                 type="button"
                 className="wd-btn"
                 style={{ background: "#f04452" }}
-                disabled={rejectPick === "직접 입력" && !rejectText.trim()}
+                disabled={busy || (rejectPick === "직접 입력" && !rejectText.trim())}
                 onClick={() => {
-                  addComment(`[반려] ${rejectPick === "직접 입력" ? rejectText : rejectPick}${rejectText && rejectPick !== "직접 입력" ? ` — ${rejectText}` : ""}`);
-                  setDecided("반려");
+                  const reason = rejectPick === "직접 입력" ? rejectText.trim() : `${rejectPick}${rejectText.trim() ? ` — ${rejectText.trim()}` : ""}`;
                   setRejectOpen(false);
-                  toast.show("반려했어요. 기안자에게 사유가 전달됐어요.");
+                  void run(() => reject(approval.id, reason), "반려했어요. 기안자에게 사유가 전달됐어요.");
                 }}
               >
                 반려하기
@@ -245,7 +309,7 @@ export default function ApprovalDetailPage() {
                 aria-checked={rejectPick === x}
                 key={x}
                 className="wd-row wd-t11"
-                style={{ padding: "10px 12px", border: `1px solid ${rejectPick === x ? "#3182f6" : "#e5e8eb"}`, borderRadius: 11, background: "#fff", textAlign: "left" }}
+                style={{ padding: "10px 12px", border: `1px solid ${rejectPick === x ? "var(--t-cobalt)" : "var(--wd-line)"}`, borderRadius: 11, background: "transparent", textAlign: "left" }}
                 onClick={() => setRejectPick(x)}
               >
                 <span className={`wd-radio ${rejectPick === x ? "on" : ""}`} />
@@ -265,9 +329,8 @@ export default function ApprovalDetailPage() {
           danger
           onClose={() => setCancelOpen(false)}
           onConfirm={() => {
-            setDecided("취소");
             setCancelOpen(false);
-            toast.show("결재 요청을 취소했어요.");
+            void run(() => cancelApproval(approval.id), "결재 요청을 취소했어요.");
           }}
         />
       )}

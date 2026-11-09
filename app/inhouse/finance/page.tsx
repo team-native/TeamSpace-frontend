@@ -3,12 +3,27 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import ModalPortal from "@/components/inhouse/ModalPortal";
 import PortalHeader from "@/components/inhouse/PortalHeader";
-import { poolColor, useInhouseData, won, type InhouseData, type Receipt } from "@/lib/inhouse";
+import { poolColor, won, type InhouseData, type Receipt } from "@/lib/inhouse";
+import ReceiptDetailModal from "@/components/inhouse/ReceiptDetailModal";
+import { RECEIPT_TONE, useFinanceSummary } from "@/lib/finance";
+import { useMe } from "@/lib/session";
+
+// "2026-10" → "10월"
+const monthLabel = (m: string) => (/^\d{4}-\d{2}/.test(m) ? `${Number(m.slice(5, 7))}월` : m);
+
+function syncedText(iso: string | null): string {
+  if (!iso) return "은행 거래를 아직 불러오지 않았어요";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  const today = new Date().toDateString() === d.toDateString();
+  return `마지막 업데이트 · ${today ? "오늘" : `${p(d.getMonth() + 1)}.${p(d.getDate())}`} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 
 export default function FinancePage() {
-  const { data, error } = useInhouseData();
+  const { data, error, reload } = useFinanceSummary();
+  const { me } = useMe();
   const [selected, setSelected] = useState<Receipt | null>(null);
   const [expanded, setExpanded] = useState(false);
 
@@ -18,7 +33,7 @@ export default function FinancePage() {
         <b>!</b>
         <h1>잠시 문제가 생겼어요</h1>
         <p>{error}</p>
-        <button onClick={() => location.reload()}>다시 불러오기</button>
+        <button onClick={reload}>다시 불러오기</button>
       </main>
     );
   }
@@ -36,9 +51,19 @@ export default function FinancePage() {
     );
   }
 
+  const member = { name: me?.name ?? data.member.name, email: me?.email ?? data.member.email };
+  // 지난달 대비: 흐름에 이번 달과 지난달이 모두 있을 때만
+  const thisFlow = data.flow.find((f) => f.month === data.month);
+  const prevFlow = data.flow[data.flow.findIndex((f) => f.month === data.month) - 1];
+  const net = (f?: { income: number; expense: number }) => (f ? f.income - f.expense : 0);
+  const trend =
+    thisFlow && prevFlow && net(prevFlow) !== 0
+      ? Math.round(((net(thisFlow) - net(prevFlow)) / Math.abs(net(prevFlow))) * 1000) / 10
+      : null;
+
   return (
     <main className="pf-shell pf-finance">
-      <PortalHeader member={data.member} />
+      <PortalHeader member={member} />
       <div className="ih-shell">
         <section className="ih-hero" id="finance">
           <div className="ih-hero-copy ih-enter">
@@ -66,7 +91,7 @@ export default function FinancePage() {
             <div className="ih-traffic-head">
               <span>이번 달 재무 트래픽</span>
               <small>
-                {data.period} <b>{data.demo ? "데모 데이터" : "LIVE"}</b>
+                {data.period} {data.demo && <b>데모 데이터</b>}
               </small>
             </div>
             <div className="ih-traffic-source">
@@ -74,7 +99,7 @@ export default function FinancePage() {
               <strong>
                 <CountUp value={data.summary.externalReceipts} />원
               </strong>
-              <em>이번 달 확정·예정 수금</em>
+              <em>등록된 확정·예정 수금 합계</em>
             </div>
             <div className="ih-flow-step">
               <span>확정·예정 수금을 세 개의 풀로 자동 배분</span>
@@ -89,7 +114,7 @@ export default function FinancePage() {
                 >
                   <i />
                   <small>{pool.id === "dividend" ? "배당풀" : pool.label}</small>
-                  <strong>{pool.id === "dividend" ? `${pool.ratio}%` : `${won.format(pool.amount)}원`}</strong>
+                  <strong>{`${won.format(pool.amount)}원`}</strong>
                   <span>{pool.ratio}%</span>
                 </div>
               ))}
@@ -103,7 +128,7 @@ export default function FinancePage() {
               <span>이번 달</span>
               <h2>돈의 흐름을 요약했어요</h2>
             </div>
-            <p>마지막 업데이트 · 오늘 09:42</p>
+            <p>{syncedText(data.lastSyncedAt)}</p>
           </Reveal>
           <div className="ih-summary-grid">
             <Reveal className="ih-balance-card" delay={0}>
@@ -116,9 +141,15 @@ export default function FinancePage() {
               </strong>
               <div className="ih-balance-bottom">
                 <span>
-                  지난달보다 <b>12.8% 늘었어요</b>
+                  {trend === null ? (
+                    "운영풀에 남아 있는 금액이에요"
+                  ) : (
+                    <>
+                      지난달보다 <b>{Math.abs(trend)}% {trend >= 0 ? "늘었어요" : "줄었어요"}</b>
+                    </>
+                  )}
                 </span>
-                <i>↗</i>
+                <i>{trend !== null && trend < 0 ? "↘" : "↗"}</i>
               </div>
             </Reveal>
             <Reveal className="ih-summary-card income" delay={80}>
@@ -126,7 +157,7 @@ export default function FinancePage() {
               <strong>
                 +<CountUp value={data.summary.monthlyRevenue} />원
               </strong>
-              <small>외주 프로젝트 3건</small>
+              <small>입금 완료 기준</small>
               <i>↗</i>
             </Reveal>
             <Reveal className="ih-summary-card expense" delay={160}>
@@ -134,7 +165,7 @@ export default function FinancePage() {
               <strong>
                 -<CountUp value={data.summary.monthlyExpense} />원
               </strong>
-              <small>운영비 포함 8건</small>
+              <small>승인된 결재 · 은행 지출</small>
               <i>↘</i>
             </Reveal>
             <Reveal className="ih-summary-card reserve" delay={240}>
@@ -154,9 +185,9 @@ export default function FinancePage() {
               <div>
                 <span>월별 현금 흐름</span>
                 <h3>
-                  수금과 지출의 간격이
+                  달마다 들어오고 나간
                   <br />
-                  꾸준히 벌어지고 있어요
+                  돈을 비교해요
                 </h3>
               </div>
               <div className="ih-chart-legend">
@@ -200,25 +231,31 @@ export default function FinancePage() {
           </Reveal>
         </section>
 
+        {data.detailed && (
         <section className="ih-receipts ih-container">
           <Reveal className="ih-section-head">
             <div>
               <span>외주 수금</span>
-              <h2>이번 달 수금 현황이에요</h2>
+              <h2>최근 수금 현황이에요</h2>
             </div>
             <span style={{ display: "flex", gap: 8 }}>
+              {data.receipts.length > 3 && (
               <button className="ih-section-link" onClick={() => setExpanded((v) => !v)}>
                 {expanded ? "최근 내역만 보기" : "전체 내역 펼치기"} <b>{expanded ? "↑" : "↓"}</b>
               </button>
+              )}
               <Link className="ih-section-link" href="/inhouse/finance/receipts">
                 수금 내역 전체 <b>→</b>
               </Link>
             </span>
           </Reveal>
           <Reveal className="ih-receipt-table" delay={100}>
+            {data.receipts.length === 0 && (
+              <p style={{ padding: "28px 24px", margin: 0, color: "var(--t-faint)", fontSize: 14 }}>아직 등록된 수금이 없어요.</p>
+            )}
             {data.receipts.slice(0, expanded ? data.receipts.length : 3).map((receipt, i) => (
               <button
-                key={`${receipt.client}-${receipt.date}`}
+                key={`${receipt.client}-${receipt.date}-${i}`}
                 className="ih-receipt-row"
                 onClick={() => setSelected(receipt)}
                 style={{ "--row": i } as CSSProperties}
@@ -228,7 +265,9 @@ export default function FinancePage() {
                   <b>{receipt.client}</b>
                   <small>{receipt.project}</small>
                 </div>
-                <span className={receipt.status === "수금 완료" ? "done" : "scheduled"}>{receipt.status}</span>
+                <span className={receipt.status === "입금 완료" ? "done" : "scheduled"} data-tone={RECEIPT_TONE[receipt.status] ?? ""}>
+                  {receipt.status}
+                </span>
                 <time>{receipt.date}</time>
                 <strong>{won.format(receipt.amount)}원</strong>
                 <i aria-hidden="true">›</i>
@@ -236,8 +275,16 @@ export default function FinancePage() {
             ))}
           </Reveal>
         </section>
+        )}
 
-        {selected && <ReceiptModal item={selected} onClose={() => setSelected(null)} />}
+        {selected && (
+          <ReceiptDetailModal
+            type="receipt"
+            item={selected}
+            pools={data.pools}
+            onClose={() => setSelected(null)}
+          />
+        )}
 
         <footer className="ih-footer">
           <div className="ih-wordmark">
@@ -247,7 +294,7 @@ export default function FinancePage() {
             <b>Native</b>
           </div>
           <p>플랫폼에 맞는 자연스러운 경험을 설계하고 구현합니다.</p>
-          <small>INTERNAL USE ONLY · 2026 NATIVE</small>
+          <small>Native 내부 전용</small>
         </footer>
       </div>
     </main>
@@ -255,60 +302,13 @@ export default function FinancePage() {
 }
 
 function donutGradient(data: InhouseData) {
+  if (data.pools.reduce((sum, p) => sum + p.ratio, 0) === 0) return "var(--t-line)";
   const stops = data.pools.map((pool, i) => {
     const from = data.pools.slice(0, i).reduce((sum, p) => sum + p.ratio, 0);
     const to = data.pools.slice(0, i + 1).reduce((sum, p) => sum + p.ratio, 0);
     return `${poolColor(pool.id)} ${from}% ${to}%`;
   });
   return `conic-gradient(${stops.join(",")})`;
-}
-
-function ReceiptModal({ item, onClose }: { item: Receipt; onClose: () => void }) {
-  return (
-    <ModalPortal>
-      <div className="pf-modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-        <section className="pf-detail-modal" role="dialog" aria-modal="true" aria-label={`${item.client} 수금 상세`}>
-          <header>
-            <div>
-              <span>RECEIPT DETAIL</span>
-              <h2>{item.client} 수금 내역</h2>
-            </div>
-            <button onClick={onClose} aria-label="닫기">
-              ×
-            </button>
-          </header>
-          <div className="pf-detail-body">
-            <div className="pf-detail-amount">
-              <span>{item.status}</span>
-              <strong>{won.format(item.amount)}원</strong>
-              <small>입금일 · {item.date}</small>
-            </div>
-            <dl>
-              <div>
-                <dt>거래처</dt>
-                <dd>{item.client}</dd>
-              </div>
-              <div>
-                <dt>프로젝트</dt>
-                <dd>{item.project}</dd>
-              </div>
-              <div>
-                <dt>수금 상태</dt>
-                <dd>{item.status}</dd>
-              </div>
-              <div>
-                <dt>풀 배분</dt>
-                <dd>운영 40% · 적립 30% · 배당 30%</dd>
-              </div>
-            </dl>
-            <button className="pf-detail-close" onClick={onClose}>
-              확인
-            </button>
-          </div>
-        </section>
-      </div>
-    </ModalPortal>
-  );
 }
 
 function CountUp({ value }: { value: number }) {
@@ -352,8 +352,13 @@ function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; 
 }
 
 function FlowChart({ items }: { items: InhouseData["flow"] }) {
-  const max = Math.max(...items.flatMap((f) => [f.income, f.expense])) * 1.12;
-  const point = (value: number, i: number) => `${52 + i * (668 / (items.length - 1))},${207 - (value / max) * 175}`;
+  if (items.length === 0) {
+    return <p style={{ padding: "60px 0", textAlign: "center", color: "var(--t-faint)", fontSize: 14 }}>아직 쌓인 월별 기록이 없어요.</p>;
+  }
+  const max = Math.max(1, ...items.flatMap((f) => [f.income, f.expense])) * 1.12;
+  // 한 달뿐이면 가운데에 점 하나
+  const point = (value: number, i: number) =>
+    `${items.length === 1 ? 386 : 52 + i * (668 / (items.length - 1))},${207 - (value / max) * 175}`;
   const income = items.map((f, i) => point(f.income, i)).join(" ");
   const expense = items.map((f, i) => point(f.expense, i)).join(" ");
   const area = `M ${income.replaceAll(" ", " L ")} L 720,207 L 52,207 Z`;
@@ -377,7 +382,7 @@ function FlowChart({ items }: { items: InhouseData["flow"] }) {
       </svg>
       <div className="ih-chart-labels">
         {items.map((f) => (
-          <span key={f.month}>{f.month}</span>
+          <span key={f.month}>{monthLabel(f.month)}</span>
         ))}
       </div>
     </div>

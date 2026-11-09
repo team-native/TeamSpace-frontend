@@ -4,13 +4,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/inhouse/ui";
-import { DEPARTMENTS } from "@/lib/demo";
+import { DEPARTMENTS } from "@/lib/shared";
+import { login, requestPasswordReset, requestSignup } from "@/lib/api";
+import { loadMe, nextPath } from "@/lib/session";
 
 type Mode = "login" | "request";
 
 const EMAIL_KEY = "native-inhouse-email";
 
-// 로그인은 형식상 화면만 두고, 제출하면 바로 인하우스로 들어간다
+// POST /auth/login · /auth/signup-requests · /auth/password-reset-requests
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
@@ -24,6 +26,10 @@ export default function LoginPage() {
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
+  const [error, setError] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [invalid, setInvalid] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(EMAIL_KEY);
@@ -46,21 +52,53 @@ export default function LoginPage() {
       </header>
       <section className="pf-login-center">
         <form
+          key={mode}
           className="pf-login-form"
-          onSubmit={(e) => {
+          noValidate
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (remember) localStorage.setItem(EMAIL_KEY, email);
-            else localStorage.removeItem(EMAIL_KEY);
-            if (mode === "request") {
-              if (!dept) {
-                setMessage("소속 부서를 선택해주세요.");
-                return;
-              }
-              setMessage(`${dept} 소속으로 접근 요청을 보냈어요. 승인 후 인하우스에 들어올 수 있습니다.`);
-              setMode("login");
+            if (busy) return;
+            setError("");
+            // 브라우저 기본 말풍선 대신 화면 안에서 한 문장으로 알려준다
+            const problem =
+              mode === "request" && !name.trim()
+                ? ["name", "이름을 입력해주세요."]
+                : !email.trim()
+                  ? ["email", "이메일을 입력해주세요."]
+                  : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+                    ? ["email", "이메일 형식을 확인해주세요."]
+                    : !password
+                      ? ["password", "비밀번호를 입력해주세요."]
+                      : password.length < 8
+                        ? ["password", "비밀번호는 8자 이상이에요."]
+                        : mode === "request" && !dept
+                          ? ["dept", "소속 부서를 선택해주세요."]
+                          : null;
+            if (problem) {
+              setInvalid(problem[0]);
+              setError(problem[1]);
               return;
             }
-            router.replace("/inhouse");
+            setInvalid("");
+            setBusy(true);
+            try {
+              if (mode === "request") {
+                await requestSignup({ email: email.trim(), name: name.trim(), dept, password });
+                setMessage(`${dept} 소속으로 접근 요청을 보냈어요. 승인 후 인하우스에 들어올 수 있습니다.`);
+                setPassword("");
+                setMode("login");
+                return;
+              }
+              if (remember) localStorage.setItem(EMAIL_KEY, email);
+              else localStorage.removeItem(EMAIL_KEY);
+              await login(email, password, true);
+              await loadMe(true);
+              router.replace(nextPath(window.location.search));
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "요청을 처리하지 못했어요.");
+            } finally {
+              setBusy(false);
+            }
           }}
         >
           <div className="pf-login-logo">
@@ -74,20 +112,33 @@ export default function LoginPage() {
           </p>
           {mode === "request" && (
             <label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" required />
+              <input
+                value={name}
+                onChange={(e) => (setName(e.target.value), invalid === "name" && setInvalid(""))}
+                placeholder="이름"
+                aria-invalid={invalid === "name"}
+                autoComplete="name"
+              />
             </label>
           )}
           <label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일" required />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => (setEmail(e.target.value), invalid === "email" && setInvalid(""))}
+              placeholder="이메일"
+              aria-invalid={invalid === "email"}
+              autoComplete="email"
+            />
           </label>
           <label className="pf-password">
             <input
               type={showPassword ? "text" : "password"}
-              minLength={8}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => (setPassword(e.target.value), invalid === "password" && setInvalid(""))}
               placeholder="비밀번호"
-              required
+              aria-invalid={invalid === "password"}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
             <button
               type="button"
@@ -100,7 +151,7 @@ export default function LoginPage() {
           {mode === "request" && (
             <div className="wd-scope" style={{ margin: "16px 0 4px", textAlign: "left" }}>
               <div className="wd-between" style={{ marginBottom: 8 }}>
-                <b className="wd-t10" style={{ color: "#4e5968" }}>소속 부서</b>
+                <b className="wd-t10" style={{ color: "var(--t-muted)" }}>소속 부서</b>
                 <span className="wd-t9 wd-faint">승인 시 운영진이 다시 확인해요</span>
               </div>
               <div className="wd-chips" role="radiogroup" aria-label="소속 부서">
@@ -111,7 +162,7 @@ export default function LoginPage() {
                     role="radio"
                     aria-checked={dept === d}
                     className={`wd-chip ${dept === d ? "bon" : ""}`}
-                    onClick={() => setDept(d)}
+                    onClick={() => (setDept(d), invalid === "dept" && setInvalid(""))}
                   >
                     {dept === d && "✓ "}
                     {d}
@@ -134,6 +185,7 @@ export default function LoginPage() {
                 onClick={() => {
                   setResetEmail(email);
                   setResetSent(false);
+                  setResetError("");
                   setResetOpen(true);
                 }}
               >
@@ -141,8 +193,31 @@ export default function LoginPage() {
               </button>
             </div>
           )}
-          {message && <div className="pf-login-alert">{message}</div>}
-          <button className="pf-login-submit">{mode === "login" ? "로그인" : "가입 요청 보내기"}</button>
+          {message && (
+          <div className="wd-scope" style={{ marginTop: 16 }}>
+            <div className="wd-banner" role="status" style={{ padding: "12px 14px" }}>
+              <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>✓</span>
+              <div>
+                <b>가입 요청을 보냈어요</b>
+                <p>{message}</p>
+              </div>
+            </div>
+          </div>
+          )}
+          {error && (
+            <div className="wd-scope" style={{ marginTop: 16 }}>
+              <div key={error} className="wd-banner danger" role="alert" style={{ padding: "12px 14px" }}>
+                <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>!</span>
+                <p style={{ margin: 0 }}>{error}</p>
+              </div>
+            </div>
+          )}
+          <button className="pf-login-submit" disabled={busy} aria-busy={busy}>
+            {busy ? "잠시만요…" : mode === "login" ? "로그인" : "가입 요청 보내기"}
+            <i aria-hidden="true">
+              <span>→</span>
+            </i>
+          </button>
           <div className="pf-login-switch">
             {mode === "login" ? "처음이신가요?" : "이미 계정이 있나요?"}
             <button
@@ -150,6 +225,8 @@ export default function LoginPage() {
               onClick={() => {
                 setMode(mode === "login" ? "request" : "login");
                 setMessage("");
+                setError("");
+                setInvalid("");
               }}
             >
               {mode === "login" ? "가입 요청하기" : "로그인하기"}
@@ -159,7 +236,7 @@ export default function LoginPage() {
       </section>
       {resetOpen && (
         <Modal
-          eyebrow="RESET PASSWORD"
+          eyebrow="계정"
           title={resetSent ? "메일을 보냈어요" : "비밀번호 찾기"}
           sub={resetSent ? `${resetEmail}로 재설정 링크를 보냈어요.` : "가입한 이메일로 재설정 링크를 보내드려요."}
           size="sm"
@@ -174,8 +251,8 @@ export default function LoginPage() {
                 <button type="button" className="wd-btn ghost" onClick={() => setResetOpen(false)}>
                   취소
                 </button>
-                <button type="submit" form="reset-form" className="wd-btn">
-                  재설정 링크 보내기
+                <button type="submit" form="reset-form" className="wd-btn" disabled={busy}>
+                  {busy ? "보내는 중…" : "재설정 링크 보내기"}
                 </button>
               </>
             )
@@ -188,9 +265,20 @@ export default function LoginPage() {
           ) : (
             <form
               id="reset-form"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                setResetSent(true);
+                if (busy) return;
+                setResetError("");
+                setBusy(true);
+                try {
+                  // 서버는 가입 여부와 상관없이 같은 응답을 준다
+                  await requestPasswordReset(resetEmail);
+                  setResetSent(true);
+                } catch (err) {
+                  setResetError(err instanceof Error ? err.message : "메일을 보내지 못했어요.");
+                } finally {
+                  setBusy(false);
+                }
               }}
             >
               <label className="wd-field">
@@ -209,6 +297,12 @@ export default function LoginPage() {
                 <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>i</span>
                 <p style={{ margin: 0 }}>링크는 30분 동안 유효해요.</p>
               </div>
+              {resetError && (
+                <div className="wd-banner danger" role="alert" style={{ padding: "12px 14px", marginTop: 8 }}>
+                  <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>!</span>
+                  <p style={{ margin: 0 }}>{resetError}</p>
+                </div>
+              )}
             </form>
           )}
         </Modal>
