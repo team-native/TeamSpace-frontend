@@ -210,14 +210,14 @@ export default function AdminSignups() {
               <button type="button" className="wd-btn ghost" onClick={() => setRejecting(null)} disabled={busy}>
                 취소
               </button>
-              <button type="button" className="wd-btn danger" onClick={() => reject(rejecting)} disabled={busy}>
+              <button type="button" className="wd-btn danger" onClick={() => reject(rejecting)} disabled={busy || !reason.trim()}>
                 {busy ? "반려하는 중…" : "반려"}
               </button>
             </>
           }
         >
           <label className="wd-t10 wd-faint" htmlFor="reject-reason" style={{ display: "block", marginBottom: 8 }}>
-            반려 사유 (선택)
+            반려 사유
           </label>
           <textarea
             id="reject-reason"

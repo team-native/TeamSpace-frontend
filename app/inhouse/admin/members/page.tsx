@@ -5,7 +5,7 @@ import AdminShell from "@/components/inhouse/AdminShell";
 import EmptyState from "@/components/inhouse/EmptyState";
 import { Av, Modal, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
-import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, fetchDepartmentNames, setFinancePermission, setMemberActive, setMemberRoles, updateMember, type NewMember, type RoleMember } from "@/lib/admin-api";
+import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, fetchDepartmentNames, setMemberActive, setMemberRoles, updateMember, type NewMember, type RoleMember } from "@/lib/admin-api";
 import { isAdminRole, loadMe, useMe } from "@/lib/session";
 
 const notYet = (e: unknown, what: string) =>
@@ -17,7 +17,7 @@ const notYet = (e: unknown, what: string) =>
 const EMPTY: NewMember = { name: "", email: "", dept: "", roles: [] };
 
 // 멤버 권한 (Admin 만): 목록 GET /people
-// FA 는 이미 있는 재정 권한 API(PATCH /admin/finance/permissions/{id}), Admin · Leader 는 PATCH /admin/users/{id}/roles
+// 역할은 PATCH /admin/users/{id}/roles 에 하나만 보낸다 (덮어쓰기)
 // 비활성화 PATCH /admin/users/{id} { active } · 추가 POST /admin/users · 삭제 DELETE /admin/users/{id}
 export default function AdminMembers() {
   const toast = useToast();
@@ -80,12 +80,11 @@ export default function AdminMembers() {
       return;
     }
     if (prev === "Admin" && m.id === me?.id && !window.confirm("내 Admin 역할을 바꾸면 이 화면에 다시 들어올 수 없어요. 계속할까요?")) return;
-    const next = role ? [role] : [];
+    // 서버는 역할을 정확히 하나만 받는다. 일반 멤버는 "Member"
+    const next = [role || "Member"];
     setBusy(m.id);
     try {
-      // 일반 멤버 ↔ FA 는 이미 있는 재정 권한 API 로 바꿀 수 있다
-      const financeOnly = (prev === "" || prev === "FA") && (role === "" || role === "FA");
-      const r = financeOnly ? await setFinancePermission(m.id, role === "FA") : await setMemberRoles(m.id, next);
+      const r = await setMemberRoles(m.id, next);
       const roles = Array.isArray(r?.roles) ? r.roles : next;
       setRows((rs) => rs?.map((x) => (x.id === m.id ? { ...x, roles } : x)) ?? null);
       if (m.id === me?.id) loadMe(true);
@@ -122,7 +121,7 @@ export default function AdminMembers() {
     }
     setBusy("new");
     try {
-      await createMember({ ...draft, name: draft.name.trim(), email: draft.email.trim() });
+      await createMember({ ...draft, name: draft.name.trim(), email: draft.email.trim(), roles: draft.roles.length ? draft.roles : ["Member"] });
       toast.show(`${draft.name.trim()}님을 추가했어요`);
       setAdding(false);
       setDraft(EMPTY);
