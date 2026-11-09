@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import MyShell, { MyTitle } from "@/components/inhouse/MyShell";
-import ProfileAvatar from "@/components/inhouse/ProfileAvatar";
+import ProfileAvatar, { AVATAR_BACKGROUNDS } from "@/components/inhouse/ProfileAvatar";
 import { useToast } from "@/components/inhouse/ui";
 import { PROFILE_EVENT, cropToPortrait, type Profile } from "@/components/inhouse/useProfilePhoto";
 import { DEPARTMENTS } from "@/lib/shared";
@@ -10,7 +10,7 @@ import { profileKey } from "@/lib/inhouse";
 import { updateProfile, type ProfileInput } from "@/lib/account";
 import { loadMe, useMe, type Me } from "@/lib/session";
 
-type FullProfile = Profile & { bio: string; interests: string[]; cohort: string };
+type FullProfile = Profile & { avatarBackground: string; bio: string; interests: string[]; cohort: string };
 
 const fromMe = (me: Me): FullProfile => ({
   name: me.name ?? "",
@@ -19,6 +19,7 @@ const fromMe = (me: Me): FullProfile => ({
   major: me.major ?? "",
   github: me.github ?? "",
   photo: me.photo ?? "",
+  avatarBackground: (me.avatarBackground || "GRAY").toUpperCase(),
   bio: me.bio ?? "",
   interests: me.interests ?? [],
   cohort: me.cohort ?? "",
@@ -33,6 +34,7 @@ function diff(a: FullProfile, b: FullProfile): Partial<ProfileInput> {
   if (a.cohort.trim() !== b.cohort) out.cohort = a.cohort.trim();
   if (a.github.trim() !== b.github) out.github = a.github.trim();
   if (a.photo !== b.photo) out.photo = a.photo;
+  if (a.avatarBackground !== b.avatarBackground) out.avatarBackground = a.avatarBackground;
   if (a.bio.trim() !== b.bio) out.bio = a.bio.trim();
   if (a.interests.join("\u0000") !== b.interests.join("\u0000")) out.interests = a.interests;
   return out;
@@ -135,7 +137,7 @@ export default function ProfilePage() {
         )}
         <div className="wd-card" style={{ padding: 28 }}>
           <div className="wd-row" style={{ gap: 18, marginBottom: 26 }}>
-            <ProfileAvatar src={form.photo} className="large" />
+            <ProfileAvatar src={form.photo} bg={form.avatarBackground} className="large" />
             <div>
               <div className="wd-row" style={{ gap: 6 }}>
                 <label className="wd-btn line sm" style={{ cursor: "pointer" }}>
@@ -164,6 +166,21 @@ export default function ProfilePage() {
                 )}
               </div>
               <p className="wd-t9 wd-faint" style={{ margin: "8px 0 0" }}>JPG · PNG · 4:5로 잘려요</p>
+              {!form.photo && (
+                <div className="t-avatar-bg" role="radiogroup" aria-label="기본 이미지 배경색">
+                  {AVATAR_BACKGROUNDS.map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={form.avatarBackground === v}
+                      aria-label={label}
+                      data-bg={v}
+                      onClick={() => set("avatarBackground", v)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div className="wd-grid g2">
@@ -175,7 +192,7 @@ export default function ProfilePage() {
               <span>
                 이메일 <em>변경 불가</em>
               </span>
-              <input className="wd-input" value={form.email} readOnly style={{ color: "#8b95a1" }} />
+              <input className="wd-input" value={form.email} readOnly style={{ color: "var(--t-faint)" }} />
             </label>
             <label className="wd-field">
               <span>부서</span>

@@ -131,7 +131,7 @@ export default function DocumentPage() {
                 </p>
               )}
               {doc.fields.map(([k, v]) => (
-                <div key={k} style={{ padding: "16px 0", borderBottom: "1px solid #e5e8eb" }}>
+                <div key={k} style={{ padding: "16px 0", borderBottom: "1px solid var(--t-line)" }}>
                   <b className="wd-t11">{k}</b>
                   <div className="wd-input ph" style={{ marginTop: 8, minHeight: 38 }}>{v}</div>
                 </div>
@@ -168,7 +168,7 @@ export default function DocumentPage() {
         </div>
         {version && (
           <div className="wd-banner warn" style={{ marginBottom: 20 }}>
-            <span className="ico" style={{ color: "#9a6b00" }}>!</span>
+            <span className="ico" style={{ color: "var(--t-orange)" }}>!</span>
             <div>
               <b>{version} 버전을 보고 있어요</b>
               <p>지금 시행 중인 문서와 다를 수 있어요.</p>
@@ -214,9 +214,9 @@ export default function DocumentPage() {
                 href={`#sec-${i}`}
                 className={section === i ? "on" : ""}
                 onClick={() => setSection(i)}
-                style={{ padding: "9px 12px", borderRadius: 9, fontSize: 10, fontWeight: 600, color: section === i ? "#191f28" : "#6b7684", background: section === i ? "#f2f4f6" : undefined }}
+                style={{ padding: "9px 12px", borderRadius: 9, fontSize: 10, fontWeight: 600, color: section === i ? "var(--t-ink)" : "var(--t-faint)", background: section === i ? "var(--t-soft)" : undefined }}
               >
-                {s.title} {s.revised && <em style={{ float: "right", color: "#d2621b", fontStyle: "normal", fontSize: 8, fontWeight: 750 }}>개정</em>}
+                {s.title} {s.revised && <em style={{ float: "right", color: "var(--t-orange)", fontStyle: "normal", fontSize: 8, fontWeight: 750 }}>개정</em>}
               </a>
             ))}
           </nav>
@@ -252,7 +252,7 @@ export default function DocumentPage() {
           </article>
           <aside className="wd-stack">
             {!version && (
-              <section className="wd-card" style={{ borderColor: doc.read ? undefined : "#cfe0fd" }}>
+              <section className="wd-card" style={{ borderColor: doc.read ? undefined : "var(--t-blue-line)" }}>
                 <h3 style={{ fontSize: 12 }}>읽음 확인</h3>
                 <p className="wd-t9 wd-faint" style={{ margin: "6px 0 14px" }}>
                   {doc.read

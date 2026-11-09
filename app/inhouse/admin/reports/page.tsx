@@ -175,7 +175,7 @@ export default function AdminReports() {
                   role="radio"
                   aria-checked={pick === key}
                   className="wd-row wd-t11"
-                  style={{ padding: "12px 14px", border: `1px solid ${pick === key ? "#3182f6" : "var(--wd-line)"}`, borderRadius: 12, gap: 10, background: "transparent", textAlign: "left", color: "inherit" }}
+                  style={{ padding: "12px 14px", border: `1px solid ${pick === key ? "var(--t-cobalt)" : "var(--wd-line)"}`, borderRadius: 12, gap: 10, background: "transparent", textAlign: "left", color: "inherit" }}
                   onClick={() => setPick(key)}
                 >
                   <span className={`wd-radio ${pick === key ? "on" : ""}`} />

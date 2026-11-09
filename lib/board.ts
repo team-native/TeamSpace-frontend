@@ -20,6 +20,8 @@ export type Post = {
   pinned: boolean;
   mine: boolean;
   commentCount: number;
+  // 서버가 내 공감 여부를 준다. 예전 서버처럼 없으면 undefined
+  liked?: boolean;
 };
 
 export type Comment = {
@@ -64,6 +66,7 @@ type ServerPost = {
   pinned?: boolean;
   mine?: boolean;
   commentCount?: number;
+  liked?: boolean;
   comments?: ServerComment[];
 };
 
@@ -116,6 +119,7 @@ export function toPost(p: ServerPost): Post {
     pinned: !!p.pinned,
     mine: !!p.mine,
     commentCount: p.commentCount ?? p.comments?.length ?? 0,
+    liked: typeof p.liked === "boolean" ? p.liked : undefined,
   };
 }
 

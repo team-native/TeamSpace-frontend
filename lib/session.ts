@@ -14,6 +14,7 @@ export type Me = {
   cohort: string;
   github: string;
   photo: string;
+  avatarBackground?: string;
   joined: string | null;
   bio: string;
   interests: string[];

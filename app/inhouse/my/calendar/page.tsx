@@ -108,10 +108,13 @@ export default function CalendarPage() {
     if (!selected || !reminders) return;
     const next = { ...reminders, [key]: !reminders[key] };
     setReminders(next);
+    const id = ++remReq.current;
     try {
-      setReminders(await saveReminders(selected.id, { [key]: next[key] }));
+      // 항목 하나만 보내면 나머지가 초기값으로 돌아갈 수 있어 전체를 보낸다. 다른 일정을 골랐거나 또 눌렀으면 응답은 버린다
+      const saved = await saveReminders(selected.id, next);
+      if (id === remReq.current) setReminders({ ...next, ...saved });
     } catch (e) {
-      setReminders(reminders);
+      if (id === remReq.current) setReminders(reminders);
       toast.show(e instanceof Error ? e.message : "알림 설정을 저장하지 못했어요.");
     }
   };
@@ -190,7 +193,7 @@ export default function CalendarPage() {
             </div>
           ))}
         </div>
-        <section className="wd-card" style={{ borderColor: "#cfe0fd" }}>
+        <section className="wd-card" style={{ borderColor: "var(--t-blue-line)" }}>
           {!events && !error && <p className="wd-t10 wd-faint" aria-busy="true">일정을 불러오는 중이에요…</p>}
           {events && !selected && (
             <p className="wd-t10 wd-faint" style={{ margin: 0 }}>
@@ -248,7 +251,7 @@ export default function CalendarPage() {
               ) : (
                 <p className="wd-t10 wd-faint" style={{ margin: 0 }}>참석 응답이 필요 없는 일정이에요.</p>
               )}
-              <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid #e5e8eb" }}>
+              <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--t-line)" }}>
                 <b className="wd-t10">미리 알림</b>
                 {!reminders && <p className="wd-t9 wd-faint" style={{ margin: "8px 0 0" }}>불러오는 중…</p>}
                 {reminders &&

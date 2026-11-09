@@ -41,8 +41,8 @@ export default function PortalShell({ data, error, active, children }: Props) {
                 height: 72,
                 margin: "0 auto 22px",
                 borderRadius: 24,
-                background: "#fff0f1",
-                color: "#f04452",
+                background: "var(--t-soft)",
+                color: "var(--t-red)",
                 fontSize: 28,
                 fontWeight: 800,
               }}

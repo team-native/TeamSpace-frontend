@@ -85,7 +85,7 @@ export default function DocumentHistoryPage() {
               const on = isCurrent(v, i);
               return (
                 <div key={`${v.ver}-${i}`} className={on ? "on" : ""}>
-                  <div className="wd-card" style={{ padding: 18, borderColor: on ? "#cfe0fd" : undefined }}>
+                  <div className="wd-card" style={{ padding: 18, borderColor: on ? "var(--t-blue-line)" : undefined }}>
                     <div className="wd-between">
                       <div className="wd-row" style={{ gap: 8 }}>
                         <b style={{ fontSize: 14 }}>{v.ver || "버전 없음"}</b>
@@ -95,7 +95,7 @@ export default function DocumentHistoryPage() {
                         {[v.date, v.who].filter(Boolean).join(" · ")}
                       </span>
                     </div>
-                    {v.note && <p className="wd-t11" style={{ margin: "10px 0 12px", color: "#333d4b" }}>{v.note}</p>}
+                    {v.note && <p className="wd-t11" style={{ margin: "10px 0 12px", color: "var(--t-text)" }}>{v.note}</p>}
                     <div className="wd-row" style={{ gap: 6 }}>
                       {on ? (
                         <Link className="wd-btn line sm" href={`/inhouse/documents/${slug}`}>
@@ -127,7 +127,7 @@ export default function DocumentHistoryPage() {
             {history.slice(history.indexOf(head), history.indexOf(compare)).map((v, i) => (
               <div key={`${v.ver}-${i}`} className="on">
                 <b className="wd-t11">{v.ver}</b>
-                <p className="wd-t11" style={{ margin: "4px 0 0", color: "#333d4b" }}>{v.note}</p>
+                <p className="wd-t11" style={{ margin: "4px 0 0", color: "var(--t-text)" }}>{v.note}</p>
               </div>
             ))}
           </div>

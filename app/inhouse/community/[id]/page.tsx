@@ -22,7 +22,7 @@ import {
 import { loadLocal, saveLocal } from "@/lib/shared";
 import EmptyState from "@/components/inhouse/EmptyState";
 
-// 서버가 게시글 공감 여부를 주지 않아서, 이 기기에서 누른 기록으로 처음 상태만 맞춘다
+// 공감 여부는 서버 값(liked)을 쓰고, 값이 없는 예전 응답일 때만 이 기기에서 누른 기록으로 맞춘다
 const LIKED_KEY = "native-inhouse-liked-posts";
 
 const errMsg = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
@@ -50,7 +50,7 @@ export default function PostPage() {
     try {
       const p = await fetchPost(id);
       setPost(p);
-      setLiked(loadLocal<string[]>(LIKED_KEY, []).includes(p.id));
+      setLiked(p.liked ?? loadLocal<string[]>(LIKED_KEY, []).includes(p.id));
       fetchPosts({ category: p.category, sort: "최신순", limit: 4 })
         .then((page) => setRelated(page.items.filter((x) => x.id !== p.id).slice(0, 3)))
         .catch(() => setRelated([]));
@@ -92,7 +92,7 @@ export default function PostPage() {
     );
 
   const comments = post.comments;
-  // 익명 댓글은 서버가 작성자를 알려주지 않아서 등장 순서대로 번호만 붙인다 (내 익명 댓글은 같은 번호)
+  // 서버가 익명 댓글에 "익명 1"처럼 번호를 붙여 준다. 번호 없이 "익명"만 온 예전 응답일 때만 등장 순서로 붙인다
   const anonNumbers = new Map<string, number>();
   comments
     .filter((c) => c.anonymous && c.author === "익명")
@@ -155,7 +155,7 @@ export default function PostPage() {
           <button
             type="button"
             aria-pressed={c.liked}
-            style={{ border: 0, background: "none", padding: 0, color: c.liked ? "#3182f6" : "inherit", fontSize: 9 }}
+            style={{ border: 0, background: "none", padding: 0, color: c.liked ? "var(--t-cobalt)" : "inherit", fontSize: 9 }}
             onClick={() => void toggleCommentLike(c)}
           >
             {c.liked ? "♥" : "♡"} 공감 {c.likes}
@@ -226,12 +226,12 @@ export default function PostPage() {
           <h1 style={{ margin: "14px 0 10px", fontSize: 26, letterSpacing: "-.05em", fontWeight: 620 }}>{post.title}</h1>
           <div className="wd-row wd-t10 wd-faint" style={{ gap: 10, marginBottom: 24 }}>
             {post.anonymous ? <span className="wd-av sm">?</span> : <Av name={post.author} size="sm" />}
-            <b style={{ color: "#191f28" }}>{post.author}</b> · {post.when} · 조회 {post.views}
+            <b style={{ color: "var(--t-ink)" }}>{post.author}</b> · {post.when} · 조회 {post.views}
           </div>
           <div className="wd-doc" style={{ marginBottom: 26, whiteSpace: "pre-line" }}>
             <p>{post.body}</p>
           </div>
-          <div className="wd-row" style={{ gap: 8, paddingBottom: 20, borderBottom: "1px solid #e5e8eb" }}>
+          <div className="wd-row" style={{ gap: 8, paddingBottom: 20, borderBottom: "1px solid var(--t-line)" }}>
             <button type="button" aria-pressed={liked} className={`wd-chip ${liked ? "bon" : ""}`} onClick={() => void toggleLike()}>
               {liked ? "♥" : "♡"} 공감 {post.likes}
             </button>
@@ -346,7 +346,7 @@ export default function PostPage() {
                 aria-checked={reason === x}
                 key={x}
                 className="wd-row wd-t11"
-                style={{ padding: "11px 12px", border: `1px solid ${reason === x ? "#3182f6" : "var(--wd-line)"}`, borderRadius: 11, background: "transparent", textAlign: "left" }}
+                style={{ padding: "11px 12px", border: `1px solid ${reason === x ? "var(--t-cobalt)" : "var(--wd-line)"}`, borderRadius: 11, background: "transparent", textAlign: "left" }}
                 onClick={() => setReason(x)}
               >
                 <span className={`wd-radio ${reason === x ? "on" : ""}`} />

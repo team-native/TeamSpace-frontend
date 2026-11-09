@@ -67,7 +67,7 @@ export default function NotificationBell() {
                 type="button"
                 key={n.id}
                 className={`wd-li link ${n.unread ? "unread" : ""}`}
-                style={{ padding: "12px 16px", gridTemplateColumns: "auto 1fr", border: 0, borderBottom: "1px solid #e5e8eb", textAlign: "left", background: n.unread ? undefined : "#fff" }}
+                style={{ gridTemplateColumns: "auto 1fr", textAlign: "left" }}
                 onClick={() => {
                   markRead(n.id);
                   setOpen(false);

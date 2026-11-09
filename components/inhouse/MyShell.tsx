@@ -37,7 +37,7 @@ export default function MyShell({ children }: { children: ReactNode }) {
             {NAV.map(([label, href]) => {
               const on = href === "/inhouse/my" ? pathname === href : pathname.startsWith(href);
               return (
-                <Link key={href} href={href} aria-current={on ? "page" : undefined} style={{ padding: "9px 12px", borderRadius: 9, fontSize: 10, fontWeight: 600, color: on ? "#191f28" : "#6b7684", background: on ? "#f2f4f6" : undefined }}>
+                <Link key={href} href={href} aria-current={on ? "page" : undefined} style={{ padding: "9px 12px", borderRadius: 9, fontSize: 10, fontWeight: 600, color: on ? "var(--t-ink)" : "var(--t-faint)", background: on ? "var(--t-soft)" : undefined }}>
                   {label}
                 </Link>
               );

@@ -53,7 +53,9 @@ export function sessionUser(): SessionUser | null {
   }
 }
 
-export const hasSession = () => !!read(REFRESH_KEY);
+// 화면 확인용: 개발 모드의 NEXT_PUBLIC_DEV_BYPASS=1, 또는 데모 배포에만 넣는 NEXT_PUBLIC_DEMO=1 일 때 로그인을 건너뛰고 가짜 관리자 데이터를 쓴다. 둘 다 없는 일반 빌드에는 포함되지 않는다
+export const hasSession = () =>
+  ((process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_DEV_BYPASS === "1") || process.env.NEXT_PUBLIC_DEMO === "1") || !!read(REFRESH_KEY);
 
 // FastAPI 에러는 {"detail": "..."} 또는 {"detail": {"message": ...}} 또는 422 의 [{msg}] 모양
 export function errorMessage(status: number, body: unknown): string {
@@ -100,6 +102,11 @@ type Options = { method?: string; body?: unknown; form?: FormData; auth?: boolea
 
 export async function api<T>(path: string, opts: Options = {}): Promise<T> {
   const { method = "GET", body, form, auth = true, query } = opts;
+  // 조건을 이 자리에 그대로 써야 배포 빌드에서 가짜 서버 파일이 통째로 빠진다
+  if ((process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_DEV_BYPASS === "1") || process.env.NEXT_PUBLIC_DEMO === "1") {
+    const { devApi } = await import("./dev-mock");
+    return (await devApi(path, method, query, body)) as T;
+  }
   const qs = query
     ? new URLSearchParams(
         Object.entries(query)

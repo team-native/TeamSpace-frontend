@@ -169,7 +169,7 @@ function NewRequest() {
     return (
       <WdPage active="requests">
         <div className="wd-narrow" style={{ padding: "120px 0", textAlign: "center" }}>
-          <div className="wd-alert" style={{ margin: "0 auto", boxShadow: "none", border: "1px solid #e5e8eb" }}>
+          <div className="wd-alert" style={{ margin: "0 auto", boxShadow: "none", border: "1px solid var(--t-line)" }}>
             <span className="ico">✓</span>
             <h2>결재를 올렸어요</h2>
             <p>검토자가 처리하면 알림으로 알려드려요.</p>

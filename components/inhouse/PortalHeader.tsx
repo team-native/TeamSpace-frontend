@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { profileKey } from "@/lib/inhouse";
 import NotificationBell from "./NotificationBell";
 import ProfileAvatar from "./ProfileAvatar";
@@ -27,6 +27,9 @@ const PROFILE_MENU: [string, string, string][] = [
 // 운영진(Leader · NativeOps · FA)에게만 보이는 메뉴
 const ADMIN_MENU: [string, string, string] = ["운영 관리", "공지 · 문의 · 신고 · 재정", "/inhouse/admin"];
 
+// 페이지마다 헤더가 새로 그려져서, 밑줄이 어디서 출발할지 모듈에 기억해 둔다
+let lastBar: { x: number; w: number } | null = null;
+
 const isActive = (pathname: string, href: string) =>
   href === "/inhouse" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
@@ -41,11 +44,49 @@ export default function PortalHeader({ member }: { member: { name: string; email
     major: me?.major ?? "",
     github: me?.github ?? "",
     photo: me?.photo ?? "",
+    avatarBackground: me?.avatarBackground ?? "",
   };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profile, setProfile] = useState<Profile>(defaults);
   const memberRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const barRef = useRef<HTMLSpanElement>(null);
+
+  // 링크 아래로 밑줄을 옮긴다. 옮길 링크가 없으면(내 공간 등) 숨긴다
+  const moveBar = useCallback((link: HTMLElement | null) => {
+    const bar = barRef.current;
+    if (!bar) return;
+    if (!link) {
+      bar.style.opacity = "0";
+      return;
+    }
+    const x = link.offsetLeft + 12;
+    const w = link.offsetWidth - 24;
+    bar.style.opacity = "1";
+    bar.style.width = `${w}px`;
+    bar.style.transform = `translateX(${x}px)`;
+    lastBar = { x, w };
+  }, []);
+  const activeLink = useCallback(() => navRef.current?.querySelector<HTMLElement>("a.active") ?? null, []);
+
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    // 이전 페이지 위치에 먼저 놓고, 다음 프레임에 현재 메뉴로 미끄러지게 한다
+    bar.style.transition = "none";
+    if (lastBar) {
+      bar.style.width = `${lastBar.w}px`;
+      bar.style.transform = `translateX(${lastBar.x}px)`;
+      bar.style.opacity = "1";
+    } else {
+      moveBar(activeLink());
+    }
+    void bar.offsetWidth;
+    bar.style.transition = "";
+    moveBar(activeLink());
+    document.fonts?.ready.then(() => moveBar(activeLink()));
+  }, [pathname, moveBar, activeLink]);
 
   useEffect(() => {
     try {
@@ -90,12 +131,20 @@ export default function PortalHeader({ member }: { member: { name: string; email
           </span>
           <b>Native</b>
         </Link>
-        <nav aria-label="인하우스 메뉴">
+        <nav aria-label="인하우스 메뉴" ref={navRef} onMouseLeave={() => moveBar(activeLink())}>
           {MENU.map(([label, href]) => (
-            <Link key={href} href={href} className={isActive(pathname, href) ? "active" : ""}>
+            <Link
+              key={href}
+              href={href}
+              className={isActive(pathname, href) ? "active" : ""}
+              onMouseEnter={(e) => moveBar(e.currentTarget)}
+              onFocus={(e) => moveBar(e.currentTarget)}
+              onBlur={() => moveBar(activeLink())}
+            >
               {label}
             </Link>
           ))}
+          <span className="pf-nav-bar" ref={barRef} aria-hidden="true" />
         </nav>
         <div className="pf-member" ref={memberRef}>
           <NotificationBell />
@@ -106,7 +155,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
           >
-            <ProfileAvatar src={profile.photo} />
+            <ProfileAvatar src={profile.photo} bg={profile.avatarBackground} />
             <span className="pf-profile-copy">
               <b>{profile.name}</b>
               <small>{profile.email}</small>
@@ -116,7 +165,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
           {menuOpen && (
             <div className="pf-profile-menu" role="menu">
               <div className="pf-profile-account">
-                <ProfileAvatar src={profile.photo} className="large" />
+                <ProfileAvatar src={profile.photo} bg={profile.avatarBackground} className="large" />
                 <div>
                   <b>{profile.name}</b>
                   <small>{profile.email}</small>

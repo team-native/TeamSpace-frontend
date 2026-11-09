@@ -260,7 +260,7 @@ export default function AdminNoticeNew() {
               {scheduled && (
                 <>
                   <input className="wd-input" type="datetime-local" aria-label="예약 시간" value={at} onChange={(e) => setAt(e.target.value)} style={{ marginTop: 12 }} />
-                  {at && !atValid && <p className="wd-t9" style={{ color: "#f04452", margin: "6px 0 0" }}>지금보다 뒤의 시간을 골라 주세요</p>}
+                  {at && !atValid && <p className="wd-t9" style={{ color: "var(--t-red)", margin: "6px 0 0" }}>지금보다 뒤의 시간을 골라 주세요</p>}
                 </>
               )}
             </section>

@@ -12,7 +12,7 @@ export default function Attachments({ files, title = "첨부 파일" }: { files:
   if (files.length === 0) return null;
   return (
     <>
-      <b className="wd-t10" style={{ display: "block", margin: "26px 0 10px", color: "#4e5968" }}>
+      <b className="wd-t10" style={{ display: "block", margin: "26px 0 10px", color: "var(--t-muted)" }}>
         {title} {files.length}
       </b>
       <div className="wd-grid g2">
@@ -45,7 +45,7 @@ export default function Attachments({ files, title = "첨부 파일" }: { files:
         ))}
       </div>
       {error && (
-        <p className="wd-t10" role="alert" style={{ color: "#f04452", margin: "8px 0 0" }}>
+        <p className="wd-t10" role="alert" style={{ color: "var(--t-red)", margin: "8px 0 0" }}>
           {error}
         </p>
       )}
