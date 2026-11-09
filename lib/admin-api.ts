@@ -126,12 +126,13 @@ export async function fetchPendingIncome(): Promise<ReceiptRow[]> {
 }
 
 // 메뉴 숫자: 실패하거나 권한이 없으면 숫자를 빼고 보여준다
-export async function fetchAdminCounts(): Promise<{ inquiries?: number; reports?: number; income?: number }> {
-  const [q, r, i] = await Promise.allSettled([fetchWaitingInquiries(), fetchReports("PENDING"), fetchPendingIncome()]);
+export async function fetchAdminCounts(): Promise<{ inquiries?: number; reports?: number; income?: number; signups?: number }> {
+  const [q, r, i, s] = await Promise.allSettled([fetchWaitingInquiries(), fetchReports("PENDING"), fetchPendingIncome(), fetchSignupRequests()]);
   return {
     inquiries: q.status === "fulfilled" ? q.value.length : undefined,
     reports: r.status === "fulfilled" ? groupReports(r.value).length : undefined,
     income: i.status === "fulfilled" ? i.value.length : undefined,
+    signups: s.status === "fulfilled" ? s.value.filter((x) => x.status === "PENDING").length : undefined,
   };
 }
 
@@ -184,3 +185,43 @@ export const setFinancePermission = (userId: string, canViewFinance: boolean) =>
     method: "PATCH",
     body: { canViewFinance },
   });
+
+// ---- 가입 요청 ----
+
+export type SignupRequest = {
+  id: string;
+  email: string;
+  name: string;
+  dept: string;
+  major: string;
+  cohort: string;
+  message: string;
+  status: string; // PENDING · APPROVED · REJECTED
+  createdAt: string;
+};
+
+export async function fetchSignupRequests(max = 300): Promise<SignupRequest[]> {
+  const all: SignupRequest[] = [];
+  let cursor: string | null = null;
+  do {
+    const page: Page = await api<Page>("/admin/signup-requests", { query: { cursor: cursor ?? undefined, limit: 100 } });
+    all.push(
+      ...page.items.map((r) => ({
+        id: str(r.id),
+        email: str(r.email),
+        name: str(r.name),
+        dept: str(r.dept),
+        major: str(r.major),
+        cohort: str(r.cohort),
+        message: str(r.message),
+        status: str(r.status).toUpperCase() || "PENDING",
+        createdAt: str(r.createdAt),
+      })),
+    );
+    cursor = page.nextCursor;
+  } while (cursor && all.length < max);
+  return all;
+}
+
+export const approveSignupRequest = (id: string) =>
+  api<Raw>(`/admin/signup-requests/${encodeURIComponent(id)}/approve`, { method: "POST", body: {} });
