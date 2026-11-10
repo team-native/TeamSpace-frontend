@@ -27,7 +27,7 @@ export default function AdminSignups() {
   const [busy, setBusy] = useState(false);
   const [rejecting, setRejecting] = useState<SignupRequest | null>(null);
   const [reason, setReason] = useState("");
-  // 조직도에는 있지만 아직 계정이 없는 사람 (이메일 없음)
+  // 조직도에는 있지만 아직 계정이 없는 사람
   const [unjoined, setUnjoined] = useState<RoleMember[]>([]);
   const [linkTo, setLinkTo] = useState("");
 
@@ -47,7 +47,7 @@ export default function AdminSignups() {
   useEffect(() => {
     load();
     fetchRoleMembers()
-      .then((ms) => setUnjoined(ms.filter((m) => !m.email)))
+      .then((ms) => setUnjoined(ms.filter((m) => m.memberId && !m.account)))
       .catch(() => setUnjoined([]));
   }, [load]);
 

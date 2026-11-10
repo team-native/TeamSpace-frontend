@@ -30,6 +30,10 @@ export default function AdminMembers() {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<NewMember>(EMPTY);
   const [removing, setRemoving] = useState<RoleMember | null>(null);
+  const [linking, setLinking] = useState<RoleMember | null>(null);
+  const [linkTo, setLinkTo] = useState("");
+  // 조직도 멤버로 이어진 계정은 /me 의 id 가 member-XX 일 수 있다
+  const isMe = (m: RoleMember) => !!me?.id && (m.id === me.id || m.key === me.id);
   const [depts, setDepts] = useState<string[]>([]);
   const [created, setCreated] = useState<{ name: string; email: string; password: string } | null>(null);
 
@@ -81,7 +85,7 @@ export default function AdminMembers() {
       toast.show("Admin이 최소 한 명은 있어야 해요");
       return;
     }
-    if (prev === "Admin" && m.id === me?.id && !window.confirm("내 Admin 역할을 바꾸면 이 화면에 다시 들어올 수 없어요. 계속할까요?")) return;
+    if (prev === "Admin" && isMe(m) && !window.confirm("내 Admin 역할을 바꾸면 이 화면에 다시 들어올 수 없어요. 계속할까요?")) return;
     // 서버는 역할을 정확히 하나만 받는다. 일반 멤버는 "Member"
     const next = [role || "Member"];
     setBusy(m.id);
@@ -94,7 +98,7 @@ export default function AdminMembers() {
             : await setMemberRoles(m.id, next);
       const roles = Array.isArray(r?.roles) ? r.roles : next;
       setRows((rs) => rs?.map((x) => (x.id === m.id ? { ...x, roles } : x)) ?? null);
-      if (m.id === me?.id) loadMe(true);
+      if (isMe(m)) loadMe(true);
       toast.show(`${m.name}님 역할을 ${role || "일반 멤버"}(으)로 바꿨어요`);
     } catch (e) {
       toast.show(notYet(e, "역할 변경"));
@@ -139,6 +143,24 @@ export default function AdminMembers() {
       load();
     } catch (e) {
       toast.show(notYet(e, "멤버 추가"));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  // 아직 계정이 없는 조직도 멤버 (연결 대상)
+  const unlinkedOrg = (rows ?? []).filter((m) => m.memberId && !m.account);
+
+  const link = async (m: RoleMember) => {
+    if (!linkTo) return;
+    setBusy(m.id);
+    try {
+      await updateMember(m.id, { memberId: linkTo });
+      toast.show(`${m.name}님 계정을 조직도에 연결했어요`);
+      setLinking(null);
+      load();
+    } catch (e) {
+      toast.show(notYet(e, "조직도 연결"));
     } finally {
       setBusy("");
     }
@@ -217,16 +239,30 @@ export default function AdminMembers() {
             <tbody>
               {shown.map((m) => {
                 // 조직도에만 있고 아직 가입 안 한 사람은 계정이 없어서 바꿀 수 있는 게 없다
-                const joined = !!m.email;
+                const joined = m.account;
                 return (
-                <tr key={m.id} style={m.active ? undefined : { opacity: 0.5 }}>
+                <tr key={m.key} style={m.active ? undefined : { opacity: 0.5 }}>
                   <td>
                     <span className="wd-row" style={{ gap: 10 }}>
                       <Av name={m.name} size="sm" />
                       <span>
                         <b>{m.name}</b>
-                        {m.id === me?.id && <span className="wd-badge" style={{ marginLeft: 6 }}>나</span>}
-                        <span className="wd-t9 wd-faint" style={{ display: "block" }}>{m.email || "아직 가입 전이에요"}</span>
+                        {isMe(m) && <span className="wd-badge" style={{ marginLeft: 6 }}>나</span>}
+                        <span className="wd-t9 wd-faint" style={{ display: "block" }}>{joined ? m.email : "아직 가입 전이에요"}</span>
+                        {joined && !m.linked && unlinkedOrg.length > 0 && (
+                          <button
+                            type="button"
+                            className="wd-link wd-t9"
+                            style={{ border: 0, background: "none", padding: 0, marginTop: 4 }}
+                            onClick={() => {
+                              const same = unlinkedOrg.filter((o) => o.name === m.name);
+                              setLinkTo(same.length === 1 ? same[0].memberId : "");
+                              setLinking(m);
+                            }}
+                          >
+                            조직도에 연결
+                          </button>
+                        )}
                       </span>
                     </span>
                   </td>
@@ -271,7 +307,7 @@ export default function AdminMembers() {
                       role="switch"
                       aria-checked={m.active}
                       aria-label={`${m.name} 계정 활성`}
-                      disabled={busy === m.id || m.id === me?.id}
+                      disabled={busy === m.id || isMe(m)}
                       className={`wd-toggle ${m.active ? "on" : ""}`}
                       onClick={() => setActive(m)}
                     />
@@ -280,7 +316,7 @@ export default function AdminMembers() {
                     )}
                   </td>
                   <td className="num">
-                    {joined && m.id !== me?.id && (
+                    {joined && !isMe(m) && (
                       <button type="button" className="wd-btn ghost sm" disabled={busy === m.id} onClick={() => setRemoving(m)}>
                         삭제
                       </button>
@@ -373,6 +409,37 @@ export default function AdminMembers() {
               ))}
             </select>
           </div>
+        </Modal>
+      )}
+      {linking && (
+        <Modal
+          eyebrow="MEMBER"
+          title={`${linking.name}님은 조직도의 누구인가요?`}
+          sub={linking.email}
+          onClose={() => !busy && setLinking(null)}
+          footer={
+            <>
+              <button type="button" className="wd-btn ghost" onClick={() => setLinking(null)} disabled={!!busy}>
+                취소
+              </button>
+              <button type="button" className="wd-btn" onClick={() => link(linking)} disabled={!!busy || !linkTo}>
+                {busy ? "연결하는 중…" : "연결"}
+              </button>
+            </>
+          }
+        >
+          <select className="wd-input" aria-label="조직도 멤버" value={linkTo} onChange={(e) => setLinkTo(e.target.value)} style={{ width: "100%" }}>
+            <option value="">조직도 멤버 고르기</option>
+            {unlinkedOrg.map((o) => (
+              <option key={o.memberId} value={o.memberId}>
+                {o.name}
+                {o.dept ? ` · ${o.dept}` : ""}
+              </option>
+            ))}
+          </select>
+          <p className="wd-t11" style={{ margin: "12px 0 0", lineHeight: 1.7 }}>
+            연결하면 이 계정이 조직도의 그 멤버로 합쳐져요. 이름이 같아도 자동으로 이어지지 않으니 직접 골라 주세요.
+          </p>
         </Modal>
       )}
       {removing && (
