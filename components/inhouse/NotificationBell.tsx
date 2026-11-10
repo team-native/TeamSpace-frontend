@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { useNotifications } from "@/lib/useNotifications";
 import { useOutside } from "./ui";
 
-export default function NotificationBell() {
+// onOpen: 프로필 메뉴처럼 같은 줄의 다른 팝업을 닫을 때 쓴다
+export default function NotificationBell({ onOpen }: { onOpen?: () => void } = {}) {
   const router = useRouter();
   const { items, unreadCount, unreadLabel, markRead, markAllRead, loaded } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -24,7 +25,10 @@ export default function NotificationBell() {
         className={`wd-bell ${open ? "on" : ""}`}
         aria-label={`안 읽은 알림 ${unreadLabel}개`}
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (!open) onOpen?.();
+          setOpen((v) => !v);
+        }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
