@@ -5,7 +5,7 @@ import AdminShell, { refreshAdminCounts } from "@/components/inhouse/AdminShell"
 import EmptyState from "@/components/inhouse/EmptyState";
 import { Av, Modal, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
-import { approveSignupRequest, fetchSignupRequests, markSignupsSeen, rejectSignupRequest, type SignupRequest } from "@/lib/admin-api";
+import { approveSignupRequest, fetchRoleMembers, fetchSignupRequests, markSignupsSeen, rejectSignupRequest, type RoleMember, type SignupRequest } from "@/lib/admin-api";
 import { relTime } from "@/lib/board";
 
 const TABS = [
@@ -17,7 +17,7 @@ const TABS = [
 type Tab = (typeof TABS)[number][0];
 const STATUS_LABEL: Record<string, string> = { PENDING: "대기", APPROVED: "승인됨", REJECTED: "반려" };
 
-// 가입 요청: GET /admin/signup-requests · 승인 POST /admin/signup-requests/{id}/approve
+// 가입 요청: GET /admin/signup-requests · 승인 POST /admin/signup-requests/{id}/approve { memberId? }
 export default function AdminSignups() {
   const toast = useToast();
   const [rows, setRows] = useState<SignupRequest[] | null>(null);
@@ -27,6 +27,9 @@ export default function AdminSignups() {
   const [busy, setBusy] = useState(false);
   const [rejecting, setRejecting] = useState<SignupRequest | null>(null);
   const [reason, setReason] = useState("");
+  // 조직도에는 있지만 아직 계정이 없는 사람 (이메일 없음)
+  const [unjoined, setUnjoined] = useState<RoleMember[]>([]);
+  const [linkTo, setLinkTo] = useState("");
 
   const load = useCallback(async () => {
     setError(null);
@@ -43,7 +46,17 @@ export default function AdminSignups() {
 
   useEffect(() => {
     load();
+    fetchRoleMembers()
+      .then((ms) => setUnjoined(ms.filter((m) => !m.email)))
+      .catch(() => setUnjoined([]));
   }, [load]);
+
+  // 승인 창을 열 때 이름이 딱 한 명과 같으면 그 사람을 미리 골라 둔다
+  const openApprove = (r: SignupRequest) => {
+    const same = unjoined.filter((m) => m.name === r.name.trim());
+    setLinkTo(same.length === 1 ? same[0].id : "");
+    setConfirm(r);
+  };
 
   const count = (t: Tab) => (rows ?? []).filter((r) => t === "ALL" || r.status === t).length;
   const shown = useMemo(
@@ -54,7 +67,8 @@ export default function AdminSignups() {
   const approve = async (r: SignupRequest) => {
     setBusy(true);
     try {
-      await approveSignupRequest(r.id);
+      await approveSignupRequest(r.id, linkTo || undefined);
+      if (linkTo) setUnjoined((ms) => ms.filter((m) => m.id !== linkTo));
       setRows((rs) => rs?.map((x) => (x.id === r.id ? { ...x, status: "APPROVED" } : x)) ?? null);
       refreshAdminCounts();
       toast.show(`${r.name || r.email}님 가입을 승인했어요`);
@@ -160,7 +174,7 @@ export default function AdminSignups() {
                             <button type="button" className="wd-btn ghost sm" onClick={() => setRejecting(r)}>
                               반려
                             </button>
-                            <button type="button" className="wd-btn sm" onClick={() => setConfirm(r)}>
+                            <button type="button" className="wd-btn sm" onClick={() => openApprove(r)}>
                               승인
                             </button>
                           </span>
@@ -194,8 +208,22 @@ export default function AdminSignups() {
             </>
           }
         >
-          <p className="wd-t11" style={{ margin: 0, lineHeight: 1.7 }}>
-            승인하면 이 이메일로 로그인할 수 있고, 팀원 목록에 {confirm.dept ? `${confirm.dept} 소속으로 ` : ""}추가돼요.
+          <label className="wd-t10 wd-faint" htmlFor="link-member" style={{ display: "block", marginBottom: 8 }}>
+            조직도의 누구인가요?
+          </label>
+          <select id="link-member" className="wd-input" value={linkTo} onChange={(e) => setLinkTo(e.target.value)} style={{ width: "100%" }}>
+            <option value="">조직도에 없음 · 새 멤버로 추가</option>
+            {unjoined.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+                {m.dept ? ` · ${m.dept}` : ""}
+              </option>
+            ))}
+          </select>
+          <p className="wd-t11" style={{ margin: "12px 0 0", lineHeight: 1.7 }}>
+            {linkTo
+              ? "승인하면 조직도의 이 멤버 계정에 이메일이 연결되고, 바로 로그인할 수 있어요."
+              : `승인하면 이 이메일로 로그인할 수 있고, 팀원 목록에 ${confirm.dept ? `${confirm.dept} 소속으로 ` : ""}새로 추가돼요.`}
           </p>
         </Modal>
       )}
