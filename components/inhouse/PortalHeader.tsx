@@ -147,7 +147,7 @@ export default function PortalHeader({ member }: { member: { name: string; email
           <span className="pf-nav-bar" ref={barRef} aria-hidden="true" />
         </nav>
         <div className="pf-member" ref={memberRef}>
-          <NotificationBell />
+          <NotificationBell onOpen={() => setMenuOpen(false)} />
           <button
             className={`pf-profile-trigger ${menuOpen ? "open" : ""}`}
             type="button"
