@@ -233,10 +233,11 @@ export async function fetchSignupRequests(max = 300): Promise<SignupRequest[]> {
   return all;
 }
 
-export const approveSignupRequest = (id: string) =>
-  api<Raw>(`/admin/signup-requests/${encodeURIComponent(id)}/approve`, { method: "POST", body: {} });
+// memberId 를 주면 조직도의 그 사람(member-XX) 계정으로 이어진다. 없으면 새 멤버로 만든다
+export const approveSignupRequest = (id: string, memberId?: string) =>
+  api<Raw>(`/admin/signup-requests/${encodeURIComponent(id)}/approve`, { method: "POST", body: memberId ? { memberId } : {} });
 
-// 반려: 백엔드에 아직 없음. 합의한 모양 POST /admin/signup-requests/{id}/reject { reason }
+// 반려: POST /admin/signup-requests/{id}/reject { reason } (사유 필수)
 export const rejectSignupRequest = (id: string, reason: string) =>
   api<Raw>(`/admin/signup-requests/${encodeURIComponent(id)}/reject`, { method: "POST", body: { reason } });
 
