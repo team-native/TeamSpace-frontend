@@ -250,7 +250,9 @@ export const ROLE_OPTIONS = [
   ["FA", "재정 열람 · 수금 등록"],
 ] as const;
 
-export type RoleMember = { id: string; name: string; email: string; dept: string; roles: string[]; active: boolean };
+// id: 관리 API 에 쓰는 계정 id (userId). 계정이 없는 조직도 멤버는 member-XX
+// memberId: 조직도 id (member-XX) · account: 로그인 계정이 있음 · linked: 계정이 조직도 멤버와 이어짐
+export type RoleMember = { id: string; key: string; memberId: string; account: boolean; linked: boolean; name: string; email: string; dept: string; roles: string[]; active: boolean };
 
 export async function fetchRoleMembers(): Promise<RoleMember[]> {
   const all: RoleMember[] = [];
@@ -259,7 +261,11 @@ export async function fetchRoleMembers(): Promise<RoleMember[]> {
     const page: Page = await api<Page>("/people", { query: { limit: 100, cursor: cursor ?? undefined } });
     all.push(
       ...page.items.map((p) => ({
-        id: str(p.id),
+        id: p.userId != null ? str(p.userId) : str(p.id),
+        key: str(p.id),
+        memberId: str(p.id).startsWith("member-") ? str(p.id) : "",
+        account: p.userId != null,
+        linked: !!p.linked,
         name: str(p.name) || "이름 없음",
         email: str(p.email),
         dept: str(p.dept),
@@ -286,7 +292,8 @@ export const createMember = (m: NewMember) => api<Raw>("/admin/users", { method:
 export const deleteMember = (userId: string) => api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
 
 // 계정 켜기 · 끄기(로그인 막기, 삭제 아님) · 부서 변경: 백엔드에 아직 없음. PATCH /admin/users/{id} { active?, dept? }
-export const updateMember = (userId: string, patch: { active?: boolean; dept?: string }) =>
+// memberId: 이미 있는 계정을 조직도 멤버(member-XX)와 잇는다
+export const updateMember = (userId: string, patch: { active?: boolean; dept?: string; memberId?: string }) =>
   api<Raw>(`/admin/users/${encodeURIComponent(userId)}`, { method: "PATCH", body: patch });
 export const setMemberActive = (userId: string, active: boolean) => updateMember(userId, { active });
 
