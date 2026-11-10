@@ -8,8 +8,9 @@ import { ApiError } from "@/lib/api";
 import { createMember, deleteMember, fetchRoleMembers, ROLE_OPTIONS, fetchDepartmentNames, setFinancePermission, setMemberActive, setMemberRoles, updateMember, type NewMember, type RoleMember } from "@/lib/admin-api";
 import { isAdminRole, loadMe, useMe } from "@/lib/session";
 
+// 404 는 "그런 사용자가 없다"일 수도 있어서 서버 메시지를 그대로 보여주고, 405 만 기능 없음으로 본다
 const notYet = (e: unknown, what: string) =>
-  e instanceof ApiError && (e.status === 404 || e.status === 405)
+  e instanceof ApiError && e.status === 405
     ? `서버에 아직 ${what} 기능이 없어요`
     : e instanceof Error
       ? e.message
@@ -214,7 +215,10 @@ export default function AdminMembers() {
               </tr>
             </thead>
             <tbody>
-              {shown.map((m) => (
+              {shown.map((m) => {
+                // 조직도에만 있고 아직 가입 안 한 사람은 계정이 없어서 바꿀 수 있는 게 없다
+                const joined = !!m.email;
+                return (
                 <tr key={m.id} style={m.active ? undefined : { opacity: 0.5 }}>
                   <td>
                     <span className="wd-row" style={{ gap: 10 }}>
@@ -222,7 +226,7 @@ export default function AdminMembers() {
                       <span>
                         <b>{m.name}</b>
                         {m.id === me?.id && <span className="wd-badge" style={{ marginLeft: 6 }}>나</span>}
-                        <span className="wd-t9 wd-faint" style={{ display: "block" }}>{m.email}</span>
+                        <span className="wd-t9 wd-faint" style={{ display: "block" }}>{m.email || "아직 가입 전이에요"}</span>
                       </span>
                     </span>
                   </td>
@@ -231,7 +235,7 @@ export default function AdminMembers() {
                       className="wd-input"
                       aria-label={`${m.name} 부서`}
                       value={m.dept}
-                      disabled={busy === m.id}
+                      disabled={!joined || busy === m.id}
                       onChange={(e) => changeDept(m, e.target.value)}
                       style={{ width: 160 }}
                     >
@@ -248,7 +252,7 @@ export default function AdminMembers() {
                       className="wd-input"
                       aria-label={`${m.name} 역할`}
                       value={roleOf(m)}
-                      disabled={busy === m.id}
+                      disabled={!joined || busy === m.id}
                       onChange={(e) => changeRole(m, e.target.value)}
                       style={{ width: 140 }}
                     >
@@ -261,6 +265,7 @@ export default function AdminMembers() {
                     </select>
                   </td>
                   <td>
+                    {joined ? (
                     <button
                       type="button"
                       role="switch"
@@ -270,16 +275,20 @@ export default function AdminMembers() {
                       className={`wd-toggle ${m.active ? "on" : ""}`}
                       onClick={() => setActive(m)}
                     />
+                    ) : (
+                      <span className="wd-badge">가입 전</span>
+                    )}
                   </td>
                   <td className="num">
-                    {m.id !== me?.id && (
+                    {joined && m.id !== me?.id && (
                       <button type="button" className="wd-btn ghost sm" disabled={busy === m.id} onClick={() => setRemoving(m)}>
                         삭제
                       </button>
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {shown.length === 0 && (
                 <tr>
                   <td colSpan={5} className="wd-faint">
