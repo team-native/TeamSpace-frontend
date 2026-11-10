@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { OrgMember, Organization } from "@/lib/organization";
 import { Av, Eyebrow, Modal, useToast } from "./ui";
 import EmptyState from "@/components/inhouse/EmptyState";
@@ -29,6 +29,13 @@ export default function TeamFinder({ org }: { org: Organization }) {
     const p = byId.get(id);
     if (p) setSelected(p);
   };
+
+  // /inhouse/team?member=member-02 로 들어오면 그 사람 상세를 바로 연다
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("member");
+    if (id) open(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [byId]);
 
   const DEPARTMENTS = org.groups.map((g) => g.name);
   const newbies = PEOPLE.filter((p) => p.isNew);
