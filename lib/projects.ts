@@ -132,8 +132,9 @@ function activityHref(kind: string, id: string, href: string): string {
     case "post":
       return `/inhouse/community/${id}`;
     case "inquiry":
-    case "proposal":
       return "/inhouse/community/inquiry?tab=mine";
+    case "proposal":
+      return id ? `/inhouse/community/proposals/${id}` : "/inhouse/community/proposals";
     case "event_rsvp":
       return "/inhouse/my/calendar";
     case "application":

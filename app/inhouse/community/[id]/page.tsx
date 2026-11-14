@@ -21,6 +21,7 @@ import {
 } from "@/lib/board";
 import { loadLocal, saveLocal } from "@/lib/shared";
 import EmptyState from "@/components/inhouse/EmptyState";
+import PostImages from "@/components/inhouse/PostImages";
 
 // 공감 여부는 서버 값(liked)을 쓰고, 값이 없는 예전 응답일 때만 이 기기에서 누른 기록으로 맞춘다
 const LIKED_KEY = "native-inhouse-liked-posts";
@@ -231,6 +232,7 @@ export default function PostPage() {
           <div className="wd-doc" style={{ marginBottom: 26, whiteSpace: "pre-line" }}>
             <p>{post.body}</p>
           </div>
+          <PostImages files={post.attachments} />
           <div className="wd-row" style={{ gap: 8, paddingBottom: 20, borderBottom: "1px solid var(--t-line)" }}>
             <button type="button" aria-pressed={liked} className={`wd-chip ${liked ? "bon" : ""}`} onClick={() => void toggleLike()}>
               {liked ? "♥" : "♡"} 공감 {post.likes}
