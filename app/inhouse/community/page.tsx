@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import CommunityShell from "@/components/inhouse/CommunityShell";
 import { Eyebrow } from "@/components/inhouse/ui";
-import { FILTER_CATEGORIES, SORTS, fetchPosts, type Post, type SortLabel } from "@/lib/board";
+import { FILTER_CATEGORIES, SORTS, fetchPosts, fetchWeeklyPopular, type Post, type SortLabel } from "@/lib/board";
 import EmptyState from "@/components/inhouse/EmptyState";
 
 const TONE: Record<string, string> = { 모집: "blue", 칭찬: "green", 질문: "violet", "정보 공유": "orange", 공지: "dark" };
@@ -30,6 +30,15 @@ function Board() {
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [loadingMore, setLoadingMore] = useState(false);
+  const [popular, setPopular] = useState<Post[] | null>(null);
+
+  // 주간 인기글은 필터와 상관없이 한 번만
+  useEffect(() => {
+    if (mineOnly) return;
+    fetchWeeklyPopular()
+      .then(setPopular)
+      .catch(() => setPopular([]));
+  }, [mineOnly]);
 
   // 입력이 멈추고 0.3초 뒤에 검색
   useEffect(() => {
@@ -112,72 +121,116 @@ function Board() {
           </div>
         </div>
       </div>
-      {error && (
-        <div className="wd-banner danger" role="alert" style={{ margin: "12px 0", padding: "12px 14px" }}>
-          <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>!</span>
-          <p style={{ margin: 0, flex: 1 }}>{error}</p>
-          <button type="button" className="wd-btn ghost sm" onClick={() => void load()}>
-            다시 시도
-          </button>
-        </div>
-      )}
-      {posts === null ? (
-        <div className="wd-muted wd-t11" aria-busy="true" style={{ padding: 48, textAlign: "center" }}>
-          게시글을 불러오는 중…
-        </div>
-      ) : posts.length > 0 ? (
-        <>
-          <div className="wd-list">
-            {posts.map((p) => (
-              <Link key={p.id} href={`/inhouse/community/${p.id}`} className={`wd-post link ${p.pinned ? "pin" : ""}`} style={{ padding: "20px 14px" }}>
-                <div>
-                  <div className="wd-row" style={{ gap: 6 }}>
-                    {p.pinned && <span className="wd-badge dark">고정</span>}
-                    <span className={`wd-badge ${TONE[p.category] ?? ""}`}>{p.category}</span>
-                  </div>
-                  <b>{p.title}</b>
-                  <p>{p.body.split("\n")[0]}</p>
-                  <div className="wd-foot">
-                    <span>{p.author}</span>
-                    <span>
-                      조회 {p.views} · 공감 {p.likes} · 댓글 {p.commentCount}
-                    </span>
-                  </div>
-                </div>
-                <span className="wd-t9 wd-faint">{p.when}</span>
-              </Link>
-            ))}
+      <div className={mineOnly ? "" : "wd-side"} style={mineOnly ? undefined : { gridTemplateColumns: "minmax(0, 1fr) 280px", marginTop: 6 }}>
+        <div style={{ minWidth: 0 }}>
+        {error && (
+          <div className="wd-banner danger" role="alert" style={{ margin: "12px 0", padding: "12px 14px" }}>
+            <span className="ico" style={{ width: 26, height: 26, fontSize: 11 }}>!</span>
+            <p style={{ margin: 0, flex: 1 }}>{error}</p>
+            <button type="button" className="wd-btn ghost sm" onClick={() => void load()}>
+              다시 시도
+            </button>
           </div>
-          {cursor && (
-            <div style={{ textAlign: "center", marginTop: 16 }}>
-              <button type="button" className="wd-btn line sm" onClick={() => void more()} disabled={loadingMore}>
-                {loadingMore ? "불러오는 중…" : "게시글 더 보기"}
-              </button>
+        )}
+        {posts === null ? (
+          <div className="wd-muted wd-t11" aria-busy="true" style={{ padding: 48, textAlign: "center" }}>
+            게시글을 불러오는 중…
+          </div>
+        ) : posts.length > 0 ? (
+          <>
+            <div className="wd-list">
+              {posts.map((p) => (
+                <Link key={p.id} href={`/inhouse/community/${p.id}`} className={`wd-post link ${p.pinned ? "pin" : ""}`} style={{ padding: "20px 14px" }}>
+                  <div>
+                    <div className="wd-row" style={{ gap: 6 }}>
+                      {p.pinned && <span className="wd-badge dark">고정</span>}
+                      <span className={`wd-badge ${TONE[p.category] ?? ""}`}>{p.category}</span>
+                    </div>
+                    <b>{p.title}</b>
+                    <p>{p.body.split("\n")[0]}</p>
+                    <div className="wd-foot">
+                      <span>{p.author}</span>
+                      <span>
+                        조회 {p.views} · 공감 {p.likes} · 댓글 {p.commentCount}
+                      {p.attachments.length > 0 && ` · 사진 ${p.attachments.length}`}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="wd-t9 wd-faint">{p.when}</span>
+                </Link>
+              ))}
             </div>
-          )}
-        </>
-      ) : error ? null : filtered ? (
-        <EmptyState
-          icon="⌕"
-          title="검색 결과가 없어요"
-          description="다른 단어로 찾아보거나 필터를 풀어보세요."
-          actionLabel="필터 초기화"
-          onAction={() => {
-            setInput("");
-            setQuery("");
-            setCategory("전체");
-            setSort("최신순");
-          }}
-        />
-      ) : (
-        <EmptyState
-          icon="✎"
-          title={mineOnly ? "아직 쓴 글이 없어요" : "아직 게시글이 없어요"}
-          description="첫 글을 올려보세요."
-          actionLabel="글쓰기"
-          onAction={() => (window.location.href = "/inhouse/community/write")}
-        />
-      )}
+            {cursor && (
+              <div style={{ textAlign: "center", marginTop: 16 }}>
+                <button type="button" className="wd-btn line sm" onClick={() => void more()} disabled={loadingMore}>
+                  {loadingMore ? "불러오는 중…" : "게시글 더 보기"}
+                </button>
+              </div>
+            )}
+          </>
+        ) : error ? null : filtered ? (
+          <EmptyState
+            icon="⌕"
+            title="검색 결과가 없어요"
+            description="다른 단어로 찾아보거나 필터를 풀어보세요."
+            actionLabel="필터 초기화"
+            onAction={() => {
+              setInput("");
+              setQuery("");
+              setCategory("전체");
+              setSort("최신순");
+            }}
+          />
+        ) : (
+          <EmptyState
+            icon="✎"
+            title={mineOnly ? "아직 쓴 글이 없어요" : "아직 게시글이 없어요"}
+            description="첫 글을 올려보세요."
+            actionLabel="글쓰기"
+            onAction={() => (window.location.href = "/inhouse/community/write")}
+          />
+        )}
+        </div>
+        {!mineOnly && <WeeklyPopular posts={popular} />}
+      </div>
     </CommunityShell>
+  );
+}
+
+// 이번 주 글 중 조회수 상위 5개
+function WeeklyPopular({ posts }: { posts: Post[] | null }) {
+  return (
+    <aside className="wd-card" style={{ padding: "20px 20px 8px", position: "sticky", top: 88 }} aria-label="주간 인기글">
+      <b className="wd-t11" style={{ display: "block", marginBottom: 10, fontWeight: 680 }}>
+        <span style={{ color: "var(--t-orange)" }}>↗</span> 주간 인기글
+      </b>
+      {posts === null ? (
+        <p className="wd-t10 wd-faint" aria-busy="true" style={{ margin: "8px 0 14px" }}>
+          불러오는 중…
+        </p>
+      ) : posts.length === 0 ? (
+        <p className="wd-t10 wd-faint" style={{ margin: "8px 0 14px" }}>
+          이번 주에 올라온 글이 아직 없어요.
+        </p>
+      ) : (
+        <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {posts.map((p, i) => (
+            <li key={p.id} style={{ borderTop: i ? "1px solid var(--t-line)" : 0 }}>
+              <Link href={`/inhouse/community/${p.id}`} className="wd-row" style={{ gap: 12, padding: "11px 0", alignItems: "flex-start" }}>
+                <span className="wd-t10" style={{ width: 22, height: 22, borderRadius: 6, background: "var(--t-soft)", display: "grid", placeItems: "center", fontWeight: 700, flexShrink: 0 }}>
+                  {i + 1}
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <b className="wd-t11" style={{ display: "block", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.title}
+                  </b>
+                  <span className="wd-t9 wd-faint">조회 {p.views}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      )}
+    </aside>
   );
 }

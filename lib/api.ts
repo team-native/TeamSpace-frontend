@@ -200,11 +200,11 @@ export function fileSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-// GET /uploads/{id} 는 토큰이 필요해서 링크 대신 받아서 저장시킨다
-export async function downloadUpload(file: Attachment): Promise<void> {
+// GET /uploads/{id} 는 토큰이 필요해서 <img src>나 링크 대신 받아서 쓴다
+export async function fetchUploadBlob(id: string): Promise<Blob> {
   const send = () => {
     const token = read(ACCESS_KEY);
-    return fetch(`${BASE}/uploads/${encodeURIComponent(file.id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    return fetch(`${BASE}/uploads/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
   };
   let res: Response;
   try {
@@ -222,7 +222,11 @@ export async function downloadUpload(file: Attachment): Promise<void> {
     }
     throw new ApiError(res.status, errorMessage(res.status, body));
   }
-  const url = URL.createObjectURL(await res.blob());
+  return res.blob();
+}
+
+export async function downloadUpload(file: Attachment): Promise<void> {
+  const url = URL.createObjectURL(await fetchUploadBlob(file.id));
   const a = document.createElement("a");
   a.href = url;
   a.download = file.name;
