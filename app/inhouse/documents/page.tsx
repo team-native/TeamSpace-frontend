@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import EmptyState from "@/components/inhouse/EmptyState";
 import PortalShell from "@/components/inhouse/PortalShell";
+import MemberRules from "@/components/inhouse/MemberRules";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
 import { useOutside } from "@/components/inhouse/ui";
 import { loadLocal, saveLocal } from "@/lib/shared";
@@ -228,6 +229,8 @@ export default function DocumentsPage() {
                 <b>{category}</b>
                 <span>{filtered.length}개의 문서</span>
               </header>
+
+              {category === "전체" && !query.trim() && <MemberRules />}
 
               {filtered.map((doc, i) => (
                 <Link

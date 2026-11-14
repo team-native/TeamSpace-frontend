@@ -799,3 +799,6 @@ html[data-theme] .wd-scope .wd-table select.wd-input{height:36px;min-height:36px
 /* 필터 줄(탭 · 칩 · 검색)이 줄바꿈되거나 아래 카드와 붙지 않게 */
 html[data-theme] .wd-scope .wd-between{row-gap:16px}
 html[data-theme] .wd-scope :is(.wd-chips,.wd-tabs,.wd-between) + .wd-card{margin-top:22px}
+
+/* 문서함: 좁은 화면에서는 분류를 위로 올리고 한 줄로 (뒤쪽 190px 규칙이 덮어쓰던 것) */
+@media (width<=950px){html[data-theme] .pf-doc-body{grid-template-columns:minmax(0,1fr);gap:20px}html[data-theme] .pf-doc-body aside{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px}html[data-theme] .pf-doc-body aside button{width:auto}}
