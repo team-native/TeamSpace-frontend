@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CommunityShell from "@/components/inhouse/CommunityShell";
 import EmptyState from "@/components/inhouse/EmptyState";
-import { Av, Eyebrow } from "@/components/inhouse/ui";
+import { Eyebrow } from "@/components/inhouse/ui";
+import { AuthorAvatar } from "@/components/inhouse/ProfileAvatar";
+import { CommentIcon } from "@/components/inhouse/Icons";
 import { PROPOSAL_SORTS, PROPOSAL_STATUSES, STATUS_TONE, fetchProposals, type Proposal, type ProposalSortLabel } from "@/lib/proposals";
 
 const STAGES = ["전체", ...PROPOSAL_STATUSES] as const;
@@ -188,11 +190,14 @@ function ProposalCard({ p }: { p: Proposal }) {
       </p>
       <div className="wd-between wd-t9 wd-faint" style={{ marginTop: 4 }}>
         <span className="wd-row" style={{ gap: 6 }}>
-          {p.anonymous ? <span className="wd-av sm">?</span> : <Av name={p.author} size="sm" />}
+          <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} size={20} />
           {p.author} · {p.when}
         </span>
-        <span>
-          댓글 {p.commentCount} · 추천 {p.recommendCount}
+        <span className="wd-row" style={{ gap: 10 }}>
+          <span className="wd-row" style={{ gap: 3 }} aria-label={`댓글 ${p.commentCount}`}>
+            <CommentIcon size={13} /> {p.commentCount}
+          </span>
+          <span aria-label={`추천 ${p.recommendCount}`}>△ {p.recommendCount}</span>
         </span>
       </div>
     </Link>

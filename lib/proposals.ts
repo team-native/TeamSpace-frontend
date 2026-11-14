@@ -1,6 +1,9 @@
 // 운영 제안: /proposals · /proposals/{id} · recommend · comments · 관리 PATCH /admin/proposals/{id}
 import { api } from "./api";
 import { relTime } from "./board";
+import { readAuthorProfile, type AuthorProfile } from "./shared";
+
+const nameOf = (a: unknown) => (typeof a === "string" ? a : a && typeof a === "object" && "name" in a ? String((a as { name: unknown }).name ?? "") : "");
 
 // 제안은 담당 부서로 보낸다 (서버에는 category 로 들어간다)
 export const PROPOSAL_DEPTS = ["NativeOps", "FA", "PM / PO", "전공 리더", "NativeLab", "Design & Client"] as const;
@@ -14,7 +17,7 @@ export const STATUS_TONE: Record<string, string> = { 접수: "", "검토 중": "
 export const PROPOSAL_SORTS = { 최신순: "latest", 추천순: "likes", 댓글순: "comments" } as const;
 export type ProposalSortLabel = keyof typeof PROPOSAL_SORTS;
 
-export type ProposalComment = { id: string; author: string; anonymous: boolean; text: string; when: string; mine: boolean };
+export type ProposalComment = { id: string; author: string; anonymous: boolean; text: string; when: string; mine: boolean; profile: AuthorProfile | null };
 
 export type Proposal = {
   id: string;
@@ -24,6 +27,7 @@ export type Proposal = {
   status: ProposalStatus;
   anonymous: boolean;
   author: string;
+  profile: AuthorProfile | null;
   recommendCount: number;
   commentCount: number;
   createdAt: string;
@@ -43,7 +47,7 @@ const arr = (v: unknown): Raw[] => (Array.isArray(v) ? v : []);
 function toComment(c: Raw): ProposalComment {
   const anonymous = !!c.anonymous;
   const n = c.anonymousNumber;
-  const author = str(c.author);
+  const author = nameOf(c.author);
   return {
     id: str(c.id),
     anonymous,
@@ -51,6 +55,7 @@ function toComment(c: Raw): ProposalComment {
     text: str(c.text),
     when: relTime(c.createdAt),
     mine: !!c.mine,
+    profile: anonymous || author === "글쓴이" ? null : readAuthorProfile(c),
   };
 }
 
@@ -63,7 +68,8 @@ export function toProposal(p: Raw): Proposal {
     body: str(p.body ?? p.content),
     status: str(p.status) || "접수",
     anonymous,
-    author: anonymous ? "익명" : str(p.author) || "알 수 없음",
+    author: anonymous ? "익명" : nameOf(p.author) || "알 수 없음",
+    profile: anonymous ? null : readAuthorProfile(p),
     recommendCount: Number(p.recommendCount ?? p.likes) || 0,
     commentCount: Number(p.commentCount) || arr(p.comments).length,
     createdAt: str(p.createdAt),
