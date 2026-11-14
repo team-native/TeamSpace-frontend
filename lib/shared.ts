@@ -33,3 +33,18 @@ export function saveLocal(key: string, value: unknown) {
     // 저장소를 못 쓰는 환경이면 화면 상태만 유지
   }
 }
+
+// ---- 작성자 프로필 ----
+
+export type AuthorProfile = { photo: string; bg: string };
+
+type RawProfile = { photo?: unknown; avatarBackground?: unknown; avatar_background?: unknown } | null | undefined;
+
+// 서버 응답에서 작성자 프로필 꺼내기 (authorProfile · author 객체 · authorPhoto 어느 모양이든)
+export function readAuthorProfile(raw: Record<string, unknown>): AuthorProfile | null {
+  const obj = (raw.authorProfile ?? (typeof raw.author === "object" ? raw.author : null)) as RawProfile;
+  const photo = obj?.photo ?? raw.authorPhoto;
+  const bg = obj?.avatarBackground ?? obj?.avatar_background ?? raw.authorAvatarBackground;
+  if (photo === undefined && bg === undefined) return null;
+  return { photo: typeof photo === "string" ? photo : "", bg: typeof bg === "string" ? bg.toUpperCase() : "GRAY" };
+}

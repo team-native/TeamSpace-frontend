@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import CommunityShell from "@/components/inhouse/CommunityShell";
 import EmptyState from "@/components/inhouse/EmptyState";
-import { Av, useToast } from "@/components/inhouse/ui";
+import { useToast } from "@/components/inhouse/ui";
+import { AuthorAvatar } from "@/components/inhouse/ProfileAvatar";
 import { ApiError } from "@/lib/api";
 import { PROPOSAL_STATUSES, STATUS_TONE, commentProposal, fetchProposal, manageProposal, recommendProposal, type Proposal } from "@/lib/proposals";
 import { isAdminRole, useMe } from "@/lib/session";
@@ -129,7 +130,7 @@ export default function ProposalDetailPage() {
           </div>
           <h1 style={{ margin: "12px 0 10px", fontSize: 24, letterSpacing: "-.05em", fontWeight: 620 }}>{p.title}</h1>
           <div className="wd-row wd-t10 wd-faint" style={{ gap: 8, marginBottom: 24 }}>
-            {p.anonymous ? <span className="wd-av sm">?</span> : <Av name={p.author} size="sm" />}
+            <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} size={24} />
             <b style={{ color: "var(--t-ink)" }}>{p.author}</b> · {p.when} · 조회 {p.views}
           </div>
           <div className="wd-doc" style={{ marginBottom: 24, whiteSpace: "pre-line" }}>
@@ -160,7 +161,7 @@ export default function ProposalDetailPage() {
           {p.comments.length === 0 && <p className="wd-t10 wd-faint" style={{ margin: "0 0 14px" }}>첫 의견을 남겨보세요.</p>}
           {p.comments.map((c) => (
             <div key={c.id} className="wd-row" style={{ gap: 10, alignItems: "flex-start", padding: "12px 0", borderTop: "1px solid var(--t-line)" }}>
-              {c.anonymous || c.author === "글쓴이" ? <span className="wd-av sm">?</span> : <Av name={c.author} size="sm" />}
+              <AuthorAvatar name={c.author} profile={c.profile} anonymous={c.anonymous || c.author === "글쓴이"} size={28} />
               <div style={{ minWidth: 0 }}>
                 <b className="wd-t10">
                   {c.author}

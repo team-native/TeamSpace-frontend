@@ -7,6 +7,8 @@ import CommunityShell from "@/components/inhouse/CommunityShell";
 import { Eyebrow } from "@/components/inhouse/ui";
 import { FILTER_CATEGORIES, SORTS, fetchPosts, fetchWeeklyPopular, type Post, type SortLabel } from "@/lib/board";
 import EmptyState from "@/components/inhouse/EmptyState";
+import { AuthorAvatar } from "@/components/inhouse/ProfileAvatar";
+import { CommentIcon, EyeIcon, HeartIcon, ImageIcon, PinIcon } from "@/components/inhouse/Icons";
 
 const TONE: Record<string, string> = { 모집: "blue", 칭찬: "green", 질문: "violet", "정보 공유": "orange", 공지: "dark" };
 
@@ -143,20 +145,42 @@ function Board() {
                 <Link key={p.id} href={`/inhouse/community/${p.id}`} className={`wd-post link ${p.pinned ? "pin" : ""}`} style={{ padding: "20px 14px" }}>
                   <div>
                     <div className="wd-row" style={{ gap: 6 }}>
-                      {p.pinned && <span className="wd-badge dark">고정</span>}
+                      {p.pinned && (
+                        <span className="wd-badge dark wd-row" style={{ gap: 3 }}>
+                          <PinIcon size={11} /> 고정
+                        </span>
+                      )}
                       <span className={`wd-badge ${TONE[p.category] ?? ""}`}>{p.category}</span>
                     </div>
                     <b>{p.title}</b>
                     <p>{p.body.split("\n")[0]}</p>
-                    <div className="wd-foot">
-                      <span>{p.author}</span>
-                      <span>
-                        조회 {p.views} · 공감 {p.likes} · 댓글 {p.commentCount}
-                      {p.attachments.length > 0 && ` · 사진 ${p.attachments.length}`}
+                    <div className="wd-foot" style={{ alignItems: "center", flexWrap: "wrap" }}>
+                      <span className="wd-row" style={{ gap: 6 }}>
+                        <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} size={20} />
+                        {p.author}
+                      </span>
+                      <span className="wd-row" style={{ gap: 10 }}>
+                        <span className="wd-row" style={{ gap: 3 }} aria-label={`조회 ${p.views}`}>
+                          <EyeIcon size={13} /> {p.views}
+                        </span>
+                        <span className="wd-row" style={{ gap: 3 }} aria-label={`공감 ${p.likes}`}>
+                          <HeartIcon size={13} /> {p.likes}
+                        </span>
+                        <span className="wd-row" style={{ gap: 3 }} aria-label={`댓글 ${p.commentCount}`}>
+                          <CommentIcon size={13} /> {p.commentCount}
+                        </span>
+                        {p.attachments.length > 0 && (
+                          <span className="wd-row" style={{ gap: 3 }} aria-label={`사진 ${p.attachments.length}장`}>
+                            <ImageIcon size={13} /> {p.attachments.length}
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>
-                  <span className="wd-t9 wd-faint">{p.when}</span>
+                  <span className="wd-t9 wd-faint wd-row" style={{ gap: 4, alignSelf: "start" }}>
+                    {p.pinned && <PinIcon size={13} title="고정된 글" />}
+                    {p.when}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -224,7 +248,9 @@ function WeeklyPopular({ posts }: { posts: Post[] | null }) {
                   <b className="wd-t11" style={{ display: "block", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {p.title}
                   </b>
-                  <span className="wd-t9 wd-faint">조회 {p.views}</span>
+                  <span className="wd-t9 wd-faint wd-row" style={{ gap: 3 }}>
+                    <EyeIcon size={12} /> {p.views}
+                  </span>
                 </span>
               </Link>
             </li>
