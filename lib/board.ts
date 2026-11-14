@@ -1,5 +1,9 @@
 // 게시판: /posts · /posts/{id} · like · comments · report
-import { api } from "./api";
+import { api, toAttachments, type Attachment } from "./api";
+import { readAuthorProfile, type AuthorProfile } from "./shared";
+
+// 서버가 author 를 이름 문자열이나 { name, photo, ... } 객체로 준다
+const authorName = (a: unknown) => (typeof a === "string" ? a : a && typeof a === "object" && "name" in a ? String((a as { name: unknown }).name ?? "") : "");
 
 export const WRITE_CATEGORIES = ["자유", "질문", "정보 공유", "모집", "칭찬", "제안", "팀 소식"] as const;
 export const FILTER_CATEGORIES = ["전체", ...WRITE_CATEGORIES, "공지"] as const;
@@ -22,6 +26,10 @@ export type Post = {
   commentCount: number;
   // 서버가 내 공감 여부를 준다. 예전 서버처럼 없으면 undefined
   liked?: boolean;
+  // 실명 글의 작성자 사진. 서버가 아직 안 주면 null
+  profile: AuthorProfile | null;
+  // 사진 (POST /uploads 로 올린 파일)
+  attachments: Attachment[];
 };
 
 export type Comment = {
@@ -35,6 +43,7 @@ export type Comment = {
   liked: boolean;
   replyTo: string | null;
   mine: boolean;
+  profile: AuthorProfile | null;
 };
 
 export type PostDetail = Post & { comments: Comment[] };
@@ -42,7 +51,7 @@ export type PostDetail = Post & { comments: Comment[] };
 type ServerComment = {
   id: string | number;
   postId?: string;
-  author?: string;
+  author?: unknown;
   anonymous?: boolean;
   text?: string;
   createdAt?: string | null;
@@ -57,7 +66,7 @@ type ServerPost = {
   category?: string;
   title?: string;
   body?: string;
-  author?: string;
+  author?: unknown;
   anonymous?: boolean;
   anonComments?: boolean;
   views?: number;
@@ -68,6 +77,7 @@ type ServerPost = {
   commentCount?: number;
   liked?: boolean;
   comments?: ServerComment[];
+  attachments?: unknown;
 };
 
 export function relTime(iso: string | null | undefined, now = new Date()): string {
@@ -91,7 +101,7 @@ export function toComment(c: ServerComment): Comment {
     id: String(c.id),
     postId: String(c.postId ?? ""),
     // 서버는 익명 댓글에 작성자를 주지 않고, 익명 글의 글쓴이 댓글엔 "글쓴이"를 준다
-    author: c.author || (anonymous ? "익명" : "알 수 없음"),
+    author: authorName(c.author) || (anonymous ? "익명" : "알 수 없음"),
     anonymous,
     text: c.text ?? "",
     when: relTime(c.createdAt),
@@ -99,6 +109,7 @@ export function toComment(c: ServerComment): Comment {
     liked: !!c.liked,
     replyTo: c.replyTo == null || c.replyTo === "" ? null : String(c.replyTo),
     mine: !!c.mine,
+    profile: anonymous ? null : readAuthorProfile(c as Record<string, unknown>),
   };
 }
 
@@ -109,7 +120,7 @@ export function toPost(p: ServerPost): Post {
     category: p.category || "자유",
     title: p.title ?? "",
     body: p.body ?? "",
-    author: anonymous ? "익명" : p.author || "알 수 없음",
+    author: anonymous ? "익명" : authorName(p.author) || "알 수 없음",
     anonymous,
     anonComments: !!p.anonComments,
     views: p.views ?? 0,
@@ -120,6 +131,8 @@ export function toPost(p: ServerPost): Post {
     mine: !!p.mine,
     commentCount: p.commentCount ?? p.comments?.length ?? 0,
     liked: typeof p.liked === "boolean" ? p.liked : undefined,
+    attachments: toAttachments(p.attachments),
+    profile: anonymous ? null : readAuthorProfile(p as Record<string, unknown>),
   };
 }
 
@@ -142,12 +155,23 @@ export async function fetchPosts(opts: { category?: string; sort: SortLabel; q?:
   return { items: page.items.map(toPost), nextCursor: page.nextCursor };
 }
 
+// 주간 인기글: 서버 정렬에 조회수가 없어서 이번 주 글을 받아 조회수로 줄 세운다
+export async function fetchWeeklyPopular(n = 5): Promise<Post[]> {
+  const page = await api<Page>("/posts", { query: { period: "week", sort: "latest", limit: 100 } });
+  return page.items
+    .map(toPost)
+    .filter((p) => p.category !== "공지")
+    .sort((a, b) => b.views - a.views || b.likes - a.likes)
+    .slice(0, n);
+}
+
 export async function fetchPost(id: string): Promise<PostDetail> {
   const p = await api<ServerPost>(`/posts/${encodeURIComponent(id)}`);
   return { ...toPost(p), comments: (p.comments ?? []).map(toComment) };
 }
 
-export type PostInput = { category: string; title: string; body: string; anonymous: boolean; anonComments: boolean };
+export type PostInput = { category: string; title: string; body: string; anonymous: boolean; anonComments: boolean; attachments?: string[] };
+export const MAX_IMAGES = 5;
 
 export async function createPost(input: PostInput) {
   return api<{ id: string }>("/posts", { method: "POST", body: { ...input, status: "published" } });

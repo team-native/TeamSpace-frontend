@@ -61,7 +61,7 @@ export default function SettingsPage() {
       setTheme(st.theme);
       applyTheme(st.theme);
       setPwChanged(st.passwordChangedAt ? st.passwordChangedAt.slice(0, 10).replace(/-/g, ".") : "");
-      setNoti(ns);
+      setNoti({ ...ns, kinds: ns.kinds ?? {}, dndDays: ns.dndDays ?? [] });
     } catch (e) {
       setError(e instanceof Error ? e.message : "설정을 불러오지 못했어요.");
     }
@@ -98,7 +98,8 @@ export default function SettingsPage() {
     const id = ++notiReq.current;
     try {
       const saved = await saveNotiSettings(patch.kinds ? { ...patch, kinds: next.kinds } : patch);
-      if (id === notiReq.current) setNoti(saved);
+      // 서버 응답에 빠진 항목(dndDays 등)이 있어도 화면 값은 유지한다
+      if (id === notiReq.current) setNoti({ ...next, ...saved, kinds: { ...next.kinds, ...(saved?.kinds ?? {}) }, dndDays: saved?.dndDays ?? next.dndDays });
       return true;
     } catch (e) {
       if (id === notiReq.current) setNoti(prev);

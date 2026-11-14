@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import MyShell, { MyTitle } from "@/components/inhouse/MyShell";
 import ProfileAvatar, { AVATAR_BACKGROUNDS } from "@/components/inhouse/ProfileAvatar";
 import { useToast } from "@/components/inhouse/ui";
-import { PROFILE_EVENT, cropToPortrait, type Profile } from "@/components/inhouse/useProfilePhoto";
+import { PROFILE_EVENT, type Profile } from "@/components/inhouse/useProfilePhoto";
+import PhotoEditor from "@/components/inhouse/PhotoEditor";
 import { DEPARTMENTS } from "@/lib/shared";
 import { profileKey } from "@/lib/inhouse";
 import { updateProfile, type ProfileInput } from "@/lib/account";
@@ -51,6 +52,13 @@ export default function ProfilePage() {
   const [tag, setTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // 편집 중인 사진 주소. 고른 원본을 기억해 두면 다시 편집할 때 화질이 덜 깨진다
+  const [editing, setEditing] = useState<string | null>(null);
+  const [source, setSource] = useState("");
+
+  useEffect(() => () => {
+    if (source.startsWith("blob:")) URL.revokeObjectURL(source);
+  }, [source]);
 
   useEffect(() => {
     if (saved) setForm((f) => f ?? saved);
@@ -141,31 +149,44 @@ export default function ProfilePage() {
             <div>
               <div className="wd-row" style={{ gap: 6 }}>
                 <label className="wd-btn line sm" style={{ cursor: "pointer" }}>
-                  사진 바꾸기
+                  {form.photo ? "사진 바꾸기" : "사진 올리기"}
                   <input
                     type="file"
                     accept="image/*"
                     style={{ display: "none" }}
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const file = e.target.files?.[0];
                       e.target.value = "";
                       if (!file) return;
-                      try {
-                        // 서버에 그대로 저장되니 작게 줄여서 보낸다
-                        set("photo", await cropToPortrait(file, 320, 0.8));
-                      } catch (err) {
-                        toast.show(err instanceof Error ? err.message : "사진을 읽지 못했어요.");
+                      if (!file.type.startsWith("image/")) {
+                        toast.show("사진 파일만 올릴 수 있어요");
+                        return;
                       }
+                      const url = URL.createObjectURL(file);
+                      setSource(url);
+                      setEditing(url);
                     }}
                   />
                 </label>
                 {form.photo && (
-                  <button type="button" className="wd-btn ghost sm" onClick={() => set("photo", "")}>
-                    기본 이미지
-                  </button>
+                  <>
+                    <button type="button" className="wd-btn line sm" onClick={() => setEditing(source || form.photo)}>
+                      편집
+                    </button>
+                    <button
+                      type="button"
+                      className="wd-btn ghost sm"
+                      onClick={() => {
+                        set("photo", "");
+                        setSource("");
+                      }}
+                    >
+                      사진 지우기
+                    </button>
+                  </>
                 )}
               </div>
-              <p className="wd-t9 wd-faint" style={{ margin: "8px 0 0" }}>JPG · PNG · 4:5로 잘려요</p>
+              <p className="wd-t9 wd-faint" style={{ margin: "8px 0 0" }}>JPG · PNG · 위치와 크기를 맞출 수 있어요. 저장을 눌러야 반영돼요.</p>
               {!form.photo && (
                 <div className="t-avatar-bg" role="radiogroup" aria-label="기본 이미지 배경색">
                   {AVATAR_BACKGROUNDS.map(([v, label]) => (
@@ -252,6 +273,16 @@ export default function ProfilePage() {
           </div>
         </div>
       </form>
+      {editing && (
+        <PhotoEditor
+          src={editing}
+          onCancel={() => setEditing(null)}
+          onApply={(url) => {
+            set("photo", url);
+            setEditing(null);
+          }}
+        />
+      )}
       {toast.node}
     </MyShell>
   );

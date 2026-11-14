@@ -7,17 +7,15 @@ import WdPage from "./WdPage";
 
 const TABS: [string, string][] = [
   ["게시판", "/inhouse/community"],
+  ["운영 제안", "/inhouse/community/proposals"],
   ["문의·건의", "/inhouse/community/inquiry"],
   ["공지", "/inhouse/community/notices"],
 ];
 
 export default function CommunityShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const current = pathname.startsWith("/inhouse/community/inquiry")
-    ? TABS[1][1]
-    : pathname.startsWith("/inhouse/community/notices")
-      ? TABS[2][1]
-      : TABS[0][1];
+  // 가장 길게 맞는 주소의 탭 (게시판은 나머지 전부)
+  const current = TABS.slice(1).find(([, href]) => pathname.startsWith(href))?.[1] ?? TABS[0][1];
   return (
     <WdPage>
       <div className="wd-wrap wd-pb">
