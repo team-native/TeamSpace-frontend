@@ -190,7 +190,7 @@ function ProposalCard({ p }: { p: Proposal }) {
       </p>
       <div className="wd-between wd-t9 wd-faint" style={{ marginTop: 4 }}>
         <span className="wd-row" style={{ gap: 6 }}>
-          <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} size={20} />
+          <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} mine={p.mine} size={20} />
           {p.author} · {p.when}
         </span>
         <span className="wd-row" style={{ gap: 10 }}>
