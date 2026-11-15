@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MEMBER_RULES } from "@/lib/member-rules";
 
 // 문서함 위의 기본 규칙. 길어서 정해진 높이 안에서만 스크롤한다
@@ -9,9 +9,39 @@ export default function MemberRules() {
   const box = useRef<HTMLDivElement>(null);
   const r = MEMBER_RULES;
 
+  const [active, setActive] = useState(0);
+
+  // 칸 안에서 보고 있는 장을 목차에 표시한다
+  const sync = useCallback(() => {
+    const b = box.current;
+    if (!b) return;
+    const top = open ? 120 : b.getBoundingClientRect().top + 24;
+    const secs = [...b.querySelectorAll<HTMLElement>("[data-sec]")];
+    let cur = 0;
+    secs.forEach((el, i) => {
+      if (el.getBoundingClientRect().top <= top) cur = i;
+    });
+    // 끝까지 내리면 마지막 장
+    if (!open && b.scrollTop + b.clientHeight >= b.scrollHeight - 2) cur = secs.length - 1;
+    setActive(cur);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener("scroll", sync, { passive: true });
+    return () => window.removeEventListener("scroll", sync);
+  }, [open, sync]);
+
   const jump = (i: number) => {
-    const el = box.current?.querySelector<HTMLElement>(`[data-sec="${i}"]`);
-    if (el && box.current) box.current.scrollTo({ top: el.offsetTop - 8, behavior: "smooth" });
+    const b = box.current;
+    const el = b?.querySelector<HTMLElement>(`[data-sec="${i}"]`);
+    if (!b || !el) return;
+    setActive(i);
+    if (open) {
+      window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - 100, behavior: "smooth" });
+    } else {
+      b.scrollTo({ top: b.scrollTop + el.getBoundingClientRect().top - b.getBoundingClientRect().top - 12, behavior: "smooth" });
+    }
   };
 
   return (
@@ -31,13 +61,7 @@ export default function MemberRules() {
         </div>
         <nav aria-label="규칙 목차" style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 22px 14px" }}>
           {r.sections.map((s, i) => (
-            <button
-              key={s.title}
-              type="button"
-              className="wd-t10"
-              style={{ padding: "5px 10px", borderRadius: 999, border: "1px solid var(--t-line)", background: "var(--t-card)", color: "var(--t-text)", cursor: "pointer" }}
-              onClick={() => jump(i)}
-            >
+            <button key={s.title} type="button" className={`t-rule-chip ${active === i ? "on" : ""}`} aria-current={active === i ? "true" : undefined} onClick={() => jump(i)}>
               {i + 1}. {s.title}
             </button>
           ))}
@@ -45,6 +69,7 @@ export default function MemberRules() {
         <div
           id="member-rules-body"
           ref={box}
+          onScroll={sync}
           tabIndex={0}
           aria-label={`${r.title} 본문`}
           style={{
