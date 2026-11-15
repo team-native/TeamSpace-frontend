@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import CommunityShell from "@/components/inhouse/CommunityShell";
 import EmptyState from "@/components/inhouse/EmptyState";
-import { useToast } from "@/components/inhouse/ui";
+import { Confirm, useToast } from "@/components/inhouse/ui";
 import { AuthorAvatar } from "@/components/inhouse/ProfileAvatar";
 import { ApiError } from "@/lib/api";
-import { PROPOSAL_STATUSES, STATUS_TONE, commentProposal, fetchProposal, manageProposal, recommendProposal, type Proposal } from "@/lib/proposals";
+import { PROPOSAL_STATUSES, STATUS_TONE, commentProposal, deleteProposal, fetchProposal, manageProposal, recommendProposal, sameDept, type Proposal } from "@/lib/proposals";
 import { isAdminRole, useMe } from "@/lib/session";
 
 // 답변 완료 · 반려는 마지막 칸
@@ -21,6 +21,8 @@ export default function ProposalDetailPage() {
   const toast = useToast();
   const { me } = useMe();
   const admin = isAdminRole(me);
+  const router = useRouter();
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [p, setP] = useState<Proposal | null>(null);
   const [error, setError] = useState<{ status: number; message: string } | null>(null);
   const [text, setText] = useState("");
@@ -70,6 +72,10 @@ export default function ProposalDetailPage() {
   }
 
   const step = stepOf(p.status);
+  // 담당 부서 구성원도 처리할 수 있다 (서버가 다시 확인한다)
+  const canManage = admin || sameDept(me?.dept, p.dept);
+  const canEdit = p.mine && p.status === "접수";
+  const canDelete = p.mine || admin;
   const reachedAt = (i: number) => {
     const h = [...p.history].reverse().find((x) => stepOf(x.status) === i);
     return h ? day(h.at) : i === 0 ? day(p.createdAt) : "";
@@ -132,6 +138,20 @@ export default function ProposalDetailPage() {
           <div className="wd-row wd-t10 wd-faint" style={{ gap: 8, marginBottom: 24 }}>
             <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} mine={p.mine} size={24} />
             <b style={{ color: "var(--t-ink)" }}>{p.author}</b> · {p.when} · 조회 {p.views}
+            {(canEdit || canDelete) && (
+              <span className="wd-row" style={{ gap: 6, marginLeft: "auto" }}>
+                {canEdit && (
+                  <Link href={`/inhouse/community/proposals/write?edit=${encodeURIComponent(p.id)}`} className="wd-btn ghost sm">
+                    수정
+                  </Link>
+                )}
+                {canDelete && (
+                  <button type="button" className="wd-btn ghost sm" style={{ color: "var(--t-red)" }} onClick={() => setDeleteOpen(true)}>
+                    삭제
+                  </button>
+                )}
+              </span>
+            )}
           </div>
           <div className="wd-doc" style={{ marginBottom: 24, whiteSpace: "pre-line" }}>
             <p>{p.body}</p>
@@ -220,7 +240,7 @@ export default function ProposalDetailPage() {
             </ol>
           </div>
 
-          {admin && (
+          {canManage && (
             <div className="wd-card" style={{ padding: 20 }}>
               <b className="wd-t11" style={{ display: "block", marginBottom: 12 }}>처리하기</b>
               <label className="wd-t10 wd-faint" htmlFor="proposal-status" style={{ display: "block", marginBottom: 6 }}>
@@ -259,6 +279,24 @@ export default function ProposalDetailPage() {
           )}
         </aside>
       </div>
+      {deleteOpen && (
+        <Confirm
+          title="제안을 삭제할까요?"
+          message={`추천과 댓글 ${p.commentCount}개도 함께 지워지고 되돌릴 수 없어요.`}
+          confirmLabel="삭제"
+          danger
+          onClose={() => setDeleteOpen(false)}
+          onConfirm={async () => {
+            try {
+              await deleteProposal(p.id);
+              router.replace("/inhouse/community/proposals");
+            } catch (e) {
+              setDeleteOpen(false);
+              toast.show(e instanceof Error ? e.message : "삭제하지 못했어요.");
+            }
+          }}
+        />
+      )}
       {toast.node}
     </CommunityShell>
   );

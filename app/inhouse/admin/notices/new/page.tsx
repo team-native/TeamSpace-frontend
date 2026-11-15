@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminShell, { AdminToggle } from "@/components/inhouse/AdminShell";
-import { useToast } from "@/components/inhouse/ui";
+import { Confirm, useToast } from "@/components/inhouse/ui";
 import { fileSize, type Attachment } from "@/lib/api";
-import { createNotice, updateNotice, type NoticeInput } from "@/lib/admin-api";
+import { createNotice, deleteNotice, updateNotice, type NoticeInput } from "@/lib/admin-api";
 import { uploadFile } from "@/lib/approvals";
 import { fetchDocs, type DocItem } from "@/lib/docs";
 import { fetchNotice } from "@/lib/notices";
@@ -23,6 +23,7 @@ export default function AdminNoticeNew() {
   const { me } = useMe();
   const { people } = usePeople();
   const [editId, setEditId] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [kind, setKind] = useState("필독");
   const [title, setTitle] = useState("");
@@ -133,6 +134,11 @@ export default function AdminNoticeNew() {
       title={editId ? "공지 수정" : "공지 등록"}
       right={
         <div className="wd-row">
+          {editId && (
+            <button type="button" className="wd-btn ghost" style={{ color: "var(--t-red)" }} onClick={() => setDeleteOpen(true)} disabled={!!saving}>
+              삭제
+            </button>
+          )}
           <button type="button" className="wd-btn ghost" onClick={() => save(true)} disabled={!!saving || loading} aria-busy={saving === "draft"}>
             {saving === "draft" ? "저장 중…" : "임시 저장"}
           </button>
@@ -282,6 +288,24 @@ export default function AdminNoticeNew() {
             </section>
           </aside>
         </div>
+      )}
+      {deleteOpen && (
+        <Confirm
+          title="공지를 삭제할까요?"
+          message="확인한 사람 기록도 함께 지워지고 되돌릴 수 없어요."
+          confirmLabel="삭제"
+          danger
+          onClose={() => setDeleteOpen(false)}
+          onConfirm={async () => {
+            try {
+              await deleteNotice(editId!);
+              router.replace("/inhouse/community/notices");
+            } catch (e) {
+              setDeleteOpen(false);
+              toast.show(e instanceof Error ? e.message : "삭제하지 못했어요.");
+            }
+          }}
+        />
       )}
       {toast.node}
     </AdminShell>

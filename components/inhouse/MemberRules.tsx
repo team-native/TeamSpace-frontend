@@ -8,6 +8,7 @@ export default function MemberRules() {
   const [expanded, setExpanded] = useState(false);
   const [active, setActive] = useState(0);
   const box = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLElement>(null);
   const r = MEMBER_RULES;
 
   // 칸 안에서 보고 있는 장을 목차에 표시한다
@@ -28,6 +29,17 @@ export default function MemberRules() {
     if (expanded) sync();
   }, [expanded, sync]);
 
+  // 접을 때 제목이 화면 위로 지나가 있으면 제목이 보이도록 부드럽게 올린다
+  const toggle = () => {
+    const next = !expanded;
+    setExpanded(next);
+    if (!next) {
+      const top = root.current?.getBoundingClientRect().top ?? 0;
+      if (top < 80) window.scrollTo({ top: window.scrollY + top - 96, behavior: "smooth" });
+      box.current?.scrollTo({ top: 0 });
+    }
+  };
+
   const jump = (i: number) => {
     const b = box.current;
     const el = b?.querySelector<HTMLElement>(`[data-sec="${i}"]`);
@@ -37,17 +49,17 @@ export default function MemberRules() {
   };
 
   return (
-    <section className="wd-scope" aria-labelledby="member-rules-title" style={{ margin: "18px 0 16px", minWidth: 0 }}>
+    <section ref={root} className="wd-scope" aria-labelledby="member-rules-title" style={{ margin: "18px 0 16px", minWidth: 0 }}>
       <div className="wd-card" style={{ padding: 0, overflow: "hidden" }}>
         <button
           type="button"
           className="t-rule-head"
           aria-expanded={expanded}
           aria-controls="member-rules-panel"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={toggle}
         >
           <span style={{ minWidth: 0 }}>
-            <span className="wd-badge orange">기본 규칙</span>
+            <span className="wd-badge blue">기본 규칙</span>
             <b id="member-rules-title" style={{ display: "block", margin: "8px 0 4px", fontSize: 16, fontWeight: 680, letterSpacing: "-.03em", color: "var(--t-ink)" }}>
               Native {r.title}
             </b>
@@ -55,12 +67,13 @@ export default function MemberRules() {
           </span>
           <span className="t-rule-toggle">
             {expanded ? "접기" : "펼쳐 보기"}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="m6 9 6 6 6-6" />
             </svg>
           </span>
         </button>
-        <div id="member-rules-panel" className={`t-rule-panel ${expanded ? "on" : ""}`} hidden={!expanded}>
+        <div id="member-rules-panel" className={`t-rule-panel ${expanded ? "on" : ""}`} inert={!expanded} aria-hidden={!expanded}>
+        <div>
         <nav aria-label="규칙 목차" style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 22px 14px" }}>
           {r.sections.map((s, i) => (
             <button key={s.title} type="button" className={`t-rule-chip ${active === i ? "on" : ""}`} aria-current={active === i ? "true" : undefined} onClick={() => jump(i)}>
@@ -113,6 +126,7 @@ export default function MemberRules() {
               </ol>
             </div>
           ))}
+        </div>
         </div>
         </div>
       </div>
