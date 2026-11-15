@@ -810,3 +810,10 @@ html[data-theme] .t-rule-chip.on{background:var(--t-ink);border-color:var(--t-in
 html[data-theme] .t-rule-chip:focus{outline:none}
 html[data-theme] .t-rule-chip:focus-visible{box-shadow:0 0 0 2px var(--t-card),0 0 0 4px var(--t-blue)}
 html[data-theme] #member-rules-body:focus{outline:none}
+html[data-theme] .t-rule-head{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:18px 22px;cursor:pointer;transition:background .15s}
+html[data-theme] .t-rule-head:hover{background:var(--t-soft)}
+html[data-theme] .t-rule-head:focus-visible{box-shadow:inset 0 0 0 2px var(--t-blue)}
+html[data-theme] .t-rule-toggle{display:inline-flex;align-items:center;gap:4px;flex:none;height:32px;padding:0 12px;border-radius:999px;background:var(--t-soft);color:var(--t-text);font-size:11px;font-weight:600}
+html[data-theme] .t-rule-head[aria-expanded=true]{padding-bottom:12px}
+html[data-theme] .t-rule-panel.on{animation:t-rule-open .22s ease-out}
+@keyframes t-rule-open{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
