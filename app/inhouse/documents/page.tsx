@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import EmptyState from "@/components/inhouse/EmptyState";
 import PortalShell from "@/components/inhouse/PortalShell";
+import MemberRules from "@/components/inhouse/MemberRules";
+import { DocIcon } from "@/components/inhouse/Icons";
 import { useRevealOnScroll } from "@/components/inhouse/useRevealOnScroll";
 import { useOutside } from "@/components/inhouse/ui";
 import { loadLocal, saveLocal } from "@/lib/shared";
@@ -229,6 +231,8 @@ export default function DocumentsPage() {
                 <span>{filtered.length}개의 문서</span>
               </header>
 
+              {category === "전체" && !query.trim() && <MemberRules />}
+
               {filtered.map((doc, i) => (
                 <Link
                   key={doc.slug}
@@ -278,12 +282,12 @@ export default function DocumentsPage() {
                 </div>
               )}
 
-              {docs && filtered.length === 0 && (
+              {docs && filtered.length === 0 && (DOCUMENTS.length || query.trim() ? (
                 <div className="wd-scope">
                   <EmptyState
                     icon="⌕"
-                    title={DOCUMENTS.length ? "검색 결과가 없어요" : "아직 등록된 문서가 없어요"}
-                    description={DOCUMENTS.length ? "다른 단어로 찾아보거나 분류를 바꿔보세요." : "관리자가 규칙이나 양식을 올리면 여기에 보여요."}
+                    title="검색 결과가 없어요"
+                    description="다른 단어로 찾아보거나 분류를 바꿔보세요."
                     actionLabel="필터 초기화"
                     onAction={() => {
                       setQuery("");
@@ -292,7 +296,12 @@ export default function DocumentsPage() {
                     }}
                   />
                 </div>
-              )}
+              ) : (
+                // 문서가 아직 없을 때. 검색한 게 아니니 돋보기 · 필터 초기화는 빼고 문서 아이콘만
+                <div className="wd-scope">
+                  <EmptyState icon={<DocIcon size={22} />} title="아직 등록된 문서가 없어요" description="관리자가 규칙이나 양식을 올리면 여기에 보여요." />
+                </div>
+              ))}
             </div>
           </section>
       </>
