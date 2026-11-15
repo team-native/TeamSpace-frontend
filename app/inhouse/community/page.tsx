@@ -8,6 +8,7 @@ import { Eyebrow } from "@/components/inhouse/ui";
 import { FILTER_CATEGORIES, SORTS, fetchPosts, fetchWeeklyPopular, type Post, type SortLabel } from "@/lib/board";
 import EmptyState from "@/components/inhouse/EmptyState";
 import { AuthorAvatar } from "@/components/inhouse/ProfileAvatar";
+import { UploadImage } from "@/components/inhouse/PostImages";
 import { CommentIcon, EyeIcon, HeartIcon, ImageIcon, PinIcon } from "@/components/inhouse/Icons";
 
 const TONE: Record<string, string> = { 모집: "blue", 칭찬: "green", 질문: "violet", "정보 공유": "orange", 공지: "dark" };
@@ -123,7 +124,7 @@ function Board() {
           </div>
         </div>
       </div>
-      <div className={mineOnly ? "" : "wd-side"} style={mineOnly ? undefined : { gridTemplateColumns: "minmax(0, 1fr) 280px", marginTop: 6 }}>
+      <div className={mineOnly ? "" : "t-side t-side-280"} style={mineOnly ? undefined : { marginTop: 6 }}>
         <div style={{ minWidth: 0 }}>
         {error && (
           <div className="wd-banner danger" role="alert" style={{ margin: "12px 0", padding: "12px 14px" }}>
@@ -140,7 +141,7 @@ function Board() {
           </div>
         ) : posts.length > 0 ? (
           <>
-            <div className="wd-list">
+            <div className="wd-list t-board">
               {posts.map((p) => (
                 <Link key={p.id} href={`/inhouse/community/${p.id}`} className={`wd-post link ${p.pinned ? "pin" : ""}`} style={{ padding: "20px 14px" }}>
                   <div>
@@ -177,9 +178,18 @@ function Board() {
                       </span>
                     </div>
                   </div>
-                  <span className="wd-t9 wd-faint wd-row" style={{ gap: 4, alignSelf: "start" }}>
-                    {p.pinned && <PinIcon size={13} title="고정된 글" />}
-                    {p.when}
+                  <span style={{ display: "flex", alignItems: "flex-start", gap: 14, alignSelf: "stretch" }}>
+                    <span className="wd-t9 wd-faint wd-row" style={{ gap: 4 }}>
+                      {p.pinned && <PinIcon size={13} title="고정된 글" />}
+                      {p.when}
+                    </span>
+                    {/* 사진이 있으면 첫 장을 오른쪽에 미리보기 */}
+                    {p.attachments[0] && (
+                      <span className="t-board-thumb">
+                        <UploadImage id={p.attachments[0].id} alt="" style={{ borderRadius: 10 }} />
+                        {p.attachments.length > 1 && <b>+{p.attachments.length - 1}</b>}
+                      </span>
+                    )}
                   </span>
                 </Link>
               ))}
