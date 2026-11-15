@@ -802,3 +802,11 @@ html[data-theme] .wd-scope :is(.wd-chips,.wd-tabs,.wd-between) + .wd-card{margin
 
 /* 문서함: 좁은 화면에서는 분류를 위로 올리고 한 줄로 (뒤쪽 190px 규칙이 덮어쓰던 것) */
 @media (width<=950px){html[data-theme] .pf-doc-body{grid-template-columns:minmax(0,1fr);gap:20px}html[data-theme] .pf-doc-body aside{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px}html[data-theme] .pf-doc-body aside button{width:auto}}
+
+/* 문서함 규칙 목차 */
+html[data-theme] .t-rule-chip{padding:6px 11px;border-radius:999px;border:1px solid var(--t-line);background:var(--t-card);color:var(--t-muted);font-size:11px;font-weight:550;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+html[data-theme] .t-rule-chip:hover{border-color:var(--t-line-strong);color:var(--t-ink)}
+html[data-theme] .t-rule-chip.on{background:var(--t-ink);border-color:var(--t-ink);color:var(--t-card)}
+html[data-theme] .t-rule-chip:focus{outline:none}
+html[data-theme] .t-rule-chip:focus-visible{box-shadow:0 0 0 2px var(--t-card),0 0 0 4px var(--t-blue)}
+html[data-theme] #member-rules-body:focus{outline:none}
