@@ -299,7 +299,7 @@ export default function DocumentsPage() {
               ) : (
                 // 문서가 아직 없을 때. 검색한 게 아니니 돋보기 · 필터 초기화는 빼고 문서 아이콘만
                 <div className="wd-scope">
-                  <EmptyState icon={<DocIcon size={22} />} title="아직 등록된 문서가 없어요" description="관리자가 규칙이나 양식을 올리면 여기에 보여요." />
+                  <EmptyState icon={<DocIcon size={28} />} title="아직 등록된 문서가 없어요" description="관리자가 규칙이나 양식을 올리면 여기에 보여요." />
                 </div>
               ))}
             </div>
