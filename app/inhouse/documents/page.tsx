@@ -281,12 +281,12 @@ export default function DocumentsPage() {
                 </div>
               )}
 
-              {docs && filtered.length === 0 && (
+              {docs && filtered.length === 0 && (DOCUMENTS.length || query.trim() ? (
                 <div className="wd-scope">
                   <EmptyState
                     icon="⌕"
-                    title={DOCUMENTS.length ? "검색 결과가 없어요" : "아직 등록된 문서가 없어요"}
-                    description={DOCUMENTS.length ? "다른 단어로 찾아보거나 분류를 바꿔보세요." : "관리자가 규칙이나 양식을 올리면 여기에 보여요."}
+                    title="검색 결과가 없어요"
+                    description="다른 단어로 찾아보거나 분류를 바꿔보세요."
                     actionLabel="필터 초기화"
                     onAction={() => {
                       setQuery("");
@@ -295,7 +295,12 @@ export default function DocumentsPage() {
                     }}
                   />
                 </div>
-              )}
+              ) : (
+                // 문서가 아직 없으면 위의 기본 규칙만 두고 짧게 알린다
+                <p className="wd-scope wd-t10 wd-faint" style={{ padding: "14px 4px" }}>
+                  다른 규칙이나 양식은 관리자가 올리면 여기에 보여요.
+                </p>
+              ))}
             </div>
           </section>
       </>
