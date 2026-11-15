@@ -810,6 +810,20 @@ html[data-theme] .t-rule-chip.on{background:var(--t-ink);border-color:var(--t-in
 html[data-theme] .t-rule-chip:focus{outline:none}
 html[data-theme] .t-rule-chip:focus-visible{box-shadow:0 0 0 2px var(--t-card),0 0 0 4px var(--t-blue)}
 html[data-theme] #member-rules-body:focus{outline:none}
+
+/* 게시판 목록: 글 사이 경계선, 사진 미리보기 */
+html[data-theme] .pf-shell .wd-list.t-board>.wd-post{position:relative}
+html[data-theme] .pf-shell .wd-list.t-board>.wd-post+.wd-post::before{content:"";position:absolute;left:24px;right:24px;top:-1px;height:1px;background:var(--t-line);transition:opacity .15s}
+html[data-theme] .pf-shell .wd-list.t-board>.wd-post:hover::before,html[data-theme] .pf-shell .wd-list.t-board>.wd-post:hover+.wd-post::before{opacity:0}
+html[data-theme] .t-board-thumb{position:relative;display:block;width:76px;height:76px;flex:none}
+html[data-theme] .t-board-thumb>b{position:absolute;right:4px;bottom:4px;padding:1px 6px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:650}
+@media (width<=650px){html[data-theme] .pf-shell .wd-list.t-board>.wd-post+.wd-post::before{left:16px;right:16px}html[data-theme] .t-board-thumb{width:60px;height:60px}}
+
+/* 본문 + 오른쪽 칸. 좁은 화면에서는 한 줄로 쌓는다 */
+html[data-theme] .t-side{display:grid;gap:22px;align-items:start}
+html[data-theme] .t-side-280{grid-template-columns:minmax(0,1fr) 280px}
+html[data-theme] .t-side-300{grid-template-columns:minmax(0,1fr) 300px}
+@media (width<=950px){html[data-theme] .t-side{grid-template-columns:minmax(0,1fr)}html[data-theme] .t-side>aside{position:static!important}}
 html[data-theme] .t-rule-head{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:18px 22px;cursor:pointer;transition:background .15s}
 html[data-theme] .t-rule-head:hover{background:var(--t-soft)}
 html[data-theme] .t-rule-head:focus-visible{box-shadow:inset 0 0 0 2px var(--t-blue)}

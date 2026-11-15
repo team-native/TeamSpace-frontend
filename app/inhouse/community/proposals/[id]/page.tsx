@@ -119,7 +119,7 @@ export default function ProposalDetailPage() {
 
   return (
     <CommunityShell>
-      <div className="wd-side" style={{ gridTemplateColumns: "minmax(0, 1fr) 300px", marginTop: 6 }}>
+      <div className="t-side t-side-300" style={{ marginTop: 6 }}>
         <article className="wd-card" style={{ padding: 28, minWidth: 0 }}>
           <Link href="/inhouse/community/proposals" className="wd-t10 wd-faint">
             ← 운영 제안
