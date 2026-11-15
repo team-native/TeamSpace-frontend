@@ -147,7 +147,7 @@ export default function PostPage() {
 
   const CommentRow = ({ c, reply = false }: { c: Comment; reply?: boolean }) => (
     <div className={`wd-comment ${reply ? "reply" : ""}`}>
-      <AuthorAvatar name={displayName(c)} profile={c.profile} anonymous={c.anonymous || (post.anonymous && c.author === "글쓴이")} size={34} />
+      <AuthorAvatar name={displayName(c)} profile={c.profile} anonymous={c.anonymous || (post.anonymous && c.author === "글쓴이")} mine={c.mine} size={34} />
       <div>
         <header>
           {displayName(c)} {isAuthor(c) && <span className="wd-badge blue" style={{ height: 17 }}>글쓴이</span>} <small>{c.when}</small>
@@ -227,7 +227,7 @@ export default function PostPage() {
           </div>
           <h1 style={{ margin: "14px 0 10px", fontSize: 26, letterSpacing: "-.05em", fontWeight: 620 }}>{post.title}</h1>
           <div className="wd-row wd-t10 wd-faint" style={{ gap: 10, marginBottom: 24 }}>
-            <AuthorAvatar name={post.author} profile={post.profile} anonymous={post.anonymous} size={24} />
+            <AuthorAvatar name={post.author} profile={post.profile} anonymous={post.anonymous} mine={post.mine} size={24} />
             <b style={{ color: "var(--t-ink)" }}>{post.author}</b> · {post.when} · 조회 {post.views}
           </div>
           <div className="wd-doc" style={{ marginBottom: 26, whiteSpace: "pre-line" }}>

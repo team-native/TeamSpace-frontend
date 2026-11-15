@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import type { AuthorProfile } from "@/lib/shared";
+import { useMe } from "@/lib/session";
 
 // 사진이 없을 때의 기본 이미지 배경색. 서버 값은 GRAY·BLUE·YELLOW·GREEN·PINK
 export const AVATAR_BACKGROUNDS: [string, string][] = [
@@ -32,13 +35,10 @@ export default function ProfileAvatar({ src, bg, className = "", size, label }: 
 }
 
 // 게시판 · 댓글 · 제안의 작성자 사진
-// 익명 → 기본 이미지, 서버가 프로필을 주면 사진(없으면 고른 배경색의 기본 이미지), 아직 안 주면 이름 첫 글자
-export function AuthorAvatar({ name, profile, anonymous, size = 24 }: { name: string; profile?: AuthorProfile | null; anonymous?: boolean; size?: number }) {
+// 익명 → 기본 이미지, 서버가 프로필을 주면 그 사진, 내 글이면 내 프로필, 그 밖엔 기본 이미지
+export function AuthorAvatar({ name, profile, anonymous, mine, size = 24 }: { name: string; profile?: AuthorProfile | null; anonymous?: boolean; mine?: boolean; size?: number }) {
+  const { me } = useMe();
   if (anonymous) return <ProfileAvatar src="" bg="GRAY" size={size} label="익명" />;
-  if (profile) return <ProfileAvatar src={profile.photo} bg={profile.bg} size={size} label={name} />;
-  return (
-    <span className="wd-av" style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }} aria-label={name}>
-      {[...name.trim()][0] ?? "?"}
-    </span>
-  );
+  const p = profile ?? (mine && me ? { photo: me.photo ?? "", bg: (me.avatarBackground || "GRAY").toUpperCase() } : null);
+  return <ProfileAvatar src={p?.photo ?? ""} bg={p?.bg ?? "GRAY"} size={size} label={name} />;
 }
