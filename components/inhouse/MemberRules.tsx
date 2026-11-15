@@ -15,7 +15,7 @@ export default function MemberRules() {
   };
 
   return (
-    <section className="wd-scope" aria-labelledby="member-rules-title" style={{ margin: "18px 0 8px", minWidth: 0 }}>
+    <section className="wd-scope" aria-labelledby="member-rules-title" style={{ margin: "18px 0 16px", minWidth: 0 }}>
       <div className="wd-card" style={{ padding: 0, overflow: "hidden" }}>
         <div className="wd-between" style={{ padding: "18px 22px 12px", gap: 12, flexWrap: "wrap" }}>
           <div>
