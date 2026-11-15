@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { OrgMember, Organization } from "@/lib/organization";
 import { Av, Eyebrow, Modal, useToast } from "./ui";
+import { MemberAvatar } from "./ProfileAvatar";
 import EmptyState from "@/components/inhouse/EmptyState";
 
 const memberLine = (m: OrgMember) => m.displaySubtitle || [m.primaryDepartment, m.role].filter(Boolean).join(" · ") || "소속 미등록";
@@ -89,7 +90,7 @@ export default function TeamFinder({ org }: { org: Organization }) {
             <div className="wd-avs" style={{ marginLeft: "auto" }}>
               {newbies.map((p) => (
                 <button type="button" key={p.id} style={{ border: 0, background: "none", padding: 0 }} onClick={() => setSelected(p)}>
-                  <Av name={p.name} tone={p.tone} />
+                  <Av name={p.name} memberId={p.id} />
                 </button>
               ))}
             </div>
@@ -115,7 +116,7 @@ export default function TeamFinder({ org }: { org: Organization }) {
               {filtered.map((p) => (
                 <button type="button" key={p.id} className="wd-card" style={{ padding: 18, textAlign: "left" }} onClick={() => setSelected(p)}>
                   <div className="wd-between">
-                    <Av name={p.name} tone={p.tone} size="lg" />
+                    <Av name={p.name} memberId={p.id} size="lg" />
                     {p.isNew && <span className="wd-badge blue">NEW</span>}
                   </div>
                   <b style={{ display: "block", marginTop: 16, fontSize: 14 }}>{p.name}</b>
@@ -144,7 +145,7 @@ export default function TeamFinder({ org }: { org: Organization }) {
             <>
             <button type="button" className="wd-card" style={{ width: 240, textAlign: "center", borderColor: "var(--t-blue-line)", background: "var(--t-card)" }} onClick={() => open(founder.memberId)}>
               <span style={{ display: "flex", justifyContent: "center" }}>
-                <Av name={founder.name} tone="dark" size="lg" />
+                <Av name={founder.name} memberId={founder.memberId} size="lg" />
               </span>
               <b style={{ display: "block", marginTop: 12, fontSize: 14 }}>{founder.name}</b>
               <span className="wd-t10 wd-faint">{founder.title}</span>
@@ -171,7 +172,7 @@ export default function TeamFinder({ org }: { org: Organization }) {
                       {g.description && <span className="wd-t9 wd-faint" style={{ display: "block", marginTop: 4 }}>{g.description}</span>}
                       {g.lead && (
                         <div className="wd-row" style={{ marginTop: 12, gap: 8 }}>
-                          <Av name={g.lead.name} tone={byId.get(g.lead.memberId)?.tone ?? ""} size="sm" />
+                          <Av name={g.lead.name} memberId={g.lead.memberId} size="sm" />
                           <span className="wd-t10">{g.lead.name}</span>
                           <span className="wd-badge" style={{ marginLeft: "auto" }}>리드</span>
                         </div>
@@ -181,7 +182,7 @@ export default function TeamFinder({ org }: { org: Organization }) {
                       <div className="wd-card soft" style={{ marginTop: 8, padding: 12 }}>
                         {g.members.map((m) => (
                           <button type="button" key={m.memberId} className="wd-row wd-t10" style={{ padding: "6px 0", gap: 8, border: 0, background: "none", width: "100%", textAlign: "left" }} onClick={() => open(m.memberId)}>
-                            <Av name={m.name} tone={byId.get(m.memberId)?.tone ?? ""} size="sm" />
+                            <Av name={m.name} memberId={m.memberId} size="sm" />
                             <span>{m.name}{m.role ? ` · ${m.role}` : ""}</span>
                             {m.isLead && <span className="wd-badge" style={{ marginLeft: "auto" }}>리드</span>}
                           </button>
@@ -223,12 +224,7 @@ export default function TeamFinder({ org }: { org: Organization }) {
           }
         >
           <div className="wd-row" style={{ gap: 16, marginBottom: 22 }}>
-            {selected.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={selected.photo} alt="" width={64} height={64} style={{ borderRadius: "50%", objectFit: "cover", flex: "none" }} />
-            ) : (
-              <Av name={selected.name} tone={selected.tone} size="xl" />
-            )}
+            <MemberAvatar name={selected.name} memberId={selected.id} profile={selected.photo ? { photo: selected.photo, bg: "GRAY" } : null} size={72} />
             <div>
               <p className="wd-t12" style={{ margin: 0, lineHeight: 1.7 }}>
                 {selected.bio ? `“${selected.bio}”` : "아직 한 줄 소개가 없어요."}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import CommunityShell from "@/components/inhouse/CommunityShell";
 import EmptyState from "@/components/inhouse/EmptyState";
+import { MegaphoneIcon } from "@/components/inhouse/Icons";
 import { Eyebrow } from "@/components/inhouse/ui";
 import { NOTICE_FILTERS, fetchNotices, type Notice, type NoticeFilter } from "@/lib/notices";
 
@@ -122,7 +123,7 @@ export default function NoticesPage() {
           )}
         </>
       ) : error ? null : kind === "전체" ? (
-        <EmptyState icon="✓" title="아직 공지가 없어요" description="운영진이 공지를 올리면 여기에 모여요." />
+        <EmptyState icon={<MegaphoneIcon size={22} />} title="아직 공지가 없어요" description="운영진이 공지를 올리면 여기에 모여요." />
       ) : (
         <EmptyState icon="⌕" title="이 분류의 공지가 없어요" description="다른 분류를 선택해 확인해보세요." actionLabel="분류 초기화" onAction={() => setKind("전체")} />
       )}

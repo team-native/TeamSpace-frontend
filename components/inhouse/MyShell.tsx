@@ -25,7 +25,7 @@ export default function MyShell({ children }: { children: ReactNode }) {
       <div className="wd-wrap wd-pb pf-my-shell">
         <aside>
           <div className="wd-row" style={{ gap: 10, padding: "0 12px 20px" }}>
-            <Av name={me?.name ?? ""} tone="dark" />
+            <Av name={me?.name ?? ""} />
             <div>
               <b className="wd-t12">{me?.name}</b>
               <span className="wd-t9 wd-faint" style={{ display: "block" }}>

@@ -155,9 +155,9 @@ export async function fetchPosts(opts: { category?: string; sort: SortLabel; q?:
   return { items: page.items.map(toPost), nextCursor: page.nextCursor };
 }
 
-// 주간 인기글: 서버 정렬에 조회수가 없어서 이번 주 글을 받아 조회수로 줄 세운다
+// 주간 인기글: 이번 주 글을 조회수순으로 받는다. 서버는 고정글을 앞에 두니 화면에서 한 번 더 줄 세운다
 export async function fetchWeeklyPopular(n = 5): Promise<Post[]> {
-  const page = await api<Page>("/posts", { query: { period: "week", sort: "latest", limit: 100 } });
+  const page = await api<Page>("/posts", { query: { period: "week", sort: "views", limit: 30 } });
   return page.items
     .map(toPost)
     .filter((p) => p.category !== "공지")
@@ -192,6 +192,14 @@ export async function addComment(postId: string, body: { text: string; anonymous
   });
   return toComment(c);
 }
+
+export async function editComment(postId: string, commentId: string, text: string) {
+  const c = await api<ServerComment>(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "PATCH", body: { text } });
+  return toComment(c);
+}
+
+export const deleteComment = (postId: string, commentId: string) =>
+  api<{ id: string; deleted: boolean }>(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "DELETE" });
 
 export const likeComment = (postId: string, commentId: string) =>
   api<{ liked: boolean; likes: number }>(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}/like`, { method: "POST" });

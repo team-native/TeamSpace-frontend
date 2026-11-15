@@ -9,7 +9,9 @@ import { ApiError } from "@/lib/api";
 import {
   REPORT_REASONS,
   addComment,
+  deleteComment,
   deletePost,
+  editComment,
   fetchPost,
   fetchPosts,
   likeComment,
@@ -20,6 +22,7 @@ import {
   type PostDetail,
 } from "@/lib/board";
 import { loadLocal, saveLocal } from "@/lib/shared";
+import { isAdminRole, useMe } from "@/lib/session";
 import EmptyState from "@/components/inhouse/EmptyState";
 import PostImages from "@/components/inhouse/PostImages";
 import { AuthorAvatar } from "@/components/inhouse/ProfileAvatar";
@@ -45,6 +48,11 @@ export default function PostPage() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState<string>(REPORT_REASONS[0]);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [removing, setRemoving] = useState<Comment | null>(null);
+  const { me } = useMe();
+  const admin = isAdminRole(me);
   const menuRef = useOutside<HTMLDivElement>(menuOpen, () => setMenuOpen(false));
 
   const load = useCallback(async () => {
@@ -136,6 +144,20 @@ export default function PostPage() {
     }
   };
 
+  const saveEdit = async () => {
+    if (!editing || !editing.text.trim() || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const c = await editComment(post.id, editing.id, editing.text.trim());
+      setComments(comments.map((x) => (x.id === editing.id ? { ...x, text: c.text || editing.text.trim() } : x)));
+      setEditing(null);
+    } catch (e) {
+      toast.show(errMsg(e, "댓글을 고치지 못했어요."));
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const toggleCommentLike = async (c: Comment) => {
     try {
       const r = await likeComment(post.id, c.id);
@@ -145,32 +167,70 @@ export default function PostPage() {
     }
   };
 
-  const CommentRow = ({ c, reply = false }: { c: Comment; reply?: boolean }) => (
-    <div className={`wd-comment ${reply ? "reply" : ""}`}>
-      <AuthorAvatar name={displayName(c)} profile={c.profile} anonymous={c.anonymous || (post.anonymous && c.author === "글쓴이")} mine={c.mine} size={34} />
-      <div>
-        <header>
-          {displayName(c)} {isAuthor(c) && <span className="wd-badge blue" style={{ height: 17 }}>글쓴이</span>} <small>{c.when}</small>
-        </header>
-        <p>{c.text}</p>
-        <div className="wd-foot">
-          <button
-            type="button"
-            aria-pressed={c.liked}
-            style={{ border: 0, background: "none", padding: 0, color: c.liked ? "var(--t-cobalt)" : "inherit", fontSize: 9 }}
-            onClick={() => void toggleCommentLike(c)}
-          >
-            {c.liked ? "♥" : "♡"} 공감 {c.likes}
-          </button>
-          {!reply && (
-            <button type="button" style={{ border: 0, background: "none", padding: 0, color: "inherit", fontSize: 9 }} onClick={() => setReplyTo(c)}>
-              답글
-            </button>
+  const foot = { border: 0, background: "none", padding: 0, color: "inherit", fontSize: 9 } as const;
+  // 수정 칸이 입력 중에 다시 만들어지지 않도록 컴포넌트가 아니라 함수로 그린다
+  const commentRow = (c: Comment, reply = false) => {
+    const isEditing = editing?.id === c.id;
+    return (
+      <div key={c.id} className={`wd-comment ${reply ? "reply" : ""}`}>
+        <AuthorAvatar name={displayName(c)} profile={c.profile} anonymous={c.anonymous || (post.anonymous && c.author === "글쓴이")} mine={c.mine} size={34} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <header>
+            {displayName(c)} {isAuthor(c) && <span className="wd-badge blue" style={{ height: 17 }}>글쓴이</span>} <small>{c.when}</small>
+          </header>
+          {isEditing ? (
+            <div style={{ marginTop: 6 }}>
+              <textarea
+                className="wd-input"
+                aria-label="댓글 고치기"
+                autoFocus
+                value={editing.text}
+                onChange={(e) => setEditing({ id: c.id, text: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setEditing(null);
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void saveEdit();
+                }}
+                rows={3}
+                style={{ width: "100%", minHeight: 72, padding: 10 }}
+              />
+              <div className="wd-row" style={{ gap: 6, justifyContent: "flex-end", marginTop: 6 }}>
+                <button type="button" className="wd-btn ghost sm" onClick={() => setEditing(null)}>
+                  취소
+                </button>
+                <button type="button" className="wd-btn sm" disabled={!editing.text.trim() || savingEdit} onClick={() => void saveEdit()}>
+                  {savingEdit ? "저장 중…" : "저장"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p>{c.text}</p>
+          )}
+          {!isEditing && (
+            <div className="wd-foot">
+              <button type="button" aria-pressed={c.liked} style={{ ...foot, color: c.liked ? "var(--t-cobalt)" : "inherit" }} onClick={() => void toggleCommentLike(c)}>
+                {c.liked ? "♥" : "♡"} 공감 {c.likes}
+              </button>
+              {!reply && (
+                <button type="button" style={foot} onClick={() => setReplyTo(c)}>
+                  답글
+                </button>
+              )}
+              {c.mine && (
+                <button type="button" style={foot} onClick={() => setEditing({ id: c.id, text: c.text })}>
+                  수정
+                </button>
+              )}
+              {(c.mine || admin) && (
+                <button type="button" style={{ ...foot, color: "var(--t-red)" }} onClick={() => setRemoving(c)}>
+                  삭제
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <CommunityShell>
@@ -255,12 +315,8 @@ export default function PostPage() {
           </div>
           {roots.map((c) => (
             <Fragment key={c.id}>
-              <CommentRow c={c} />
-              {comments
-                .filter((r) => r.replyTo === c.id)
-                .map((r) => (
-                  <CommentRow key={r.id} c={r} reply />
-                ))}
+              {commentRow(c)}
+              {comments.filter((r) => r.replyTo === c.id).map((r) => commentRow(r, true))}
             </Fragment>
           ))}
           {replyTo && (
@@ -373,6 +429,28 @@ export default function PostPage() {
             } catch (e) {
               setDeleteOpen(false);
               toast.show(errMsg(e, "삭제하지 못했어요."));
+            }
+          }}
+        />
+      )}
+      {removing && (
+        <Confirm
+          title="댓글을 삭제할까요?"
+          message="삭제한 댓글은 되돌릴 수 없어요."
+          confirmLabel="삭제"
+          danger
+          onClose={() => setRemoving(null)}
+          onConfirm={async () => {
+            const target = removing;
+            try {
+              await deleteComment(post.id, target.id);
+              setComments(comments.filter((x) => x.id !== target.id));
+              if (replyTo?.id === target.id) setReplyTo(null);
+              toast.show("댓글을 삭제했어요");
+            } catch (e) {
+              toast.show(errMsg(e, "삭제하지 못했어요."));
+            } finally {
+              setRemoving(null);
             }
           }}
         />

@@ -10,6 +10,7 @@ import { DEPARTMENTS } from "@/lib/shared";
 import { profileKey } from "@/lib/inhouse";
 import { updateProfile, type ProfileInput } from "@/lib/account";
 import { loadMe, useMe, type Me } from "@/lib/session";
+import { refreshPhotoBook } from "@/lib/avatars";
 
 type FullProfile = Profile & { avatarBackground: string; bio: string; interests: string[]; cohort: string };
 
@@ -93,6 +94,7 @@ export default function ProfilePage() {
     try {
       const next = await updateProfile(changes);
       await loadMe(true);
+      refreshPhotoBook();
       const profile = fromMe(next);
       setForm(profile);
       // 예전에 기기에만 저장한 프로필은 지우고 서버 값으로 머리글을 맞춘다
