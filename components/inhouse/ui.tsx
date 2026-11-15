@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { initial, toneOf, type Tone } from "@/lib/shared";
+import type { Tone } from "@/lib/shared";
+import { MemberAvatar } from "./ProfileAvatar";
 import { createPortal } from "react-dom";
 import ModalPortal from "./ModalPortal";
 
@@ -13,9 +14,11 @@ export function Eyebrow({ children }: { children: ReactNode }) {
   );
 }
 
-export function Av({ name, id, tone, size = "" }: { name: string; id?: string; tone?: Tone; size?: "" | "sm" | "lg" | "xl" }) {
-  const t = tone ?? (id ? toneOf(id) : undefined) ?? "";
-  return <span className={`wd-av ${size} ${t}`}>{initial(name)}</span>;
+const AV_SIZE = { "": 34, sm: 24, lg: 64, xl: 96 } as const;
+
+// 사람 아바타: 본인이 정한 사진, 없으면 기본 이미지 (이름 첫 글자는 쓰지 않는다)
+export function Av({ name, memberId, size = "" }: { name: string; memberId?: string; id?: string; tone?: Tone; size?: "" | "sm" | "lg" | "xl" }) {
+  return <MemberAvatar name={name} memberId={memberId} size={AV_SIZE[size]} />;
 }
 
 function useEscape(onClose: () => void) {

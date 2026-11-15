@@ -106,6 +106,7 @@ export type EventInput = {
 };
 
 // 관리자만: POST /admin/events · PATCH /admin/events/{id}
+export const deleteEvent = (id: string) => api<{ id: string; deleted: boolean }>(`/admin/events/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const createEvent = (input: EventInput) => api<{ id: string }>("/admin/events", { method: "POST", body: input });
 export const updateEvent = (id: string, input: Partial<EventInput>) =>
   api<{ id: string }>(`/admin/events/${encodeURIComponent(id)}`, { method: "PATCH", body: input });

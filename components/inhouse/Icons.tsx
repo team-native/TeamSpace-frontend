@@ -65,3 +65,13 @@ export const DocIcon = ({ size = 14, title }: P) =>
       <path d="M14 3v5h5M9 13h6M9 17h4" />
     </>,
   );
+
+export const MegaphoneIcon = ({ size = 14, title }: P) =>
+  svg(
+    size,
+    title,
+    <>
+      <path d="M4 10v4a1 1 0 0 0 1 1h2l6 4V5L7 9H5a1 1 0 0 0-1 1Z" />
+      <path d="M17 9a4 4 0 0 1 0 6M8 15l1 5h2" />
+    </>,
+  );

@@ -4,9 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminShell, { AdminToggle } from "@/components/inhouse/AdminShell";
 import EmptyState from "@/components/inhouse/EmptyState";
-import { useToast } from "@/components/inhouse/ui";
+import { Confirm, useToast } from "@/components/inhouse/ui";
 import { ApiError } from "@/lib/api";
-import { createEvent, fetchEvent, updateEvent, type CalEvent, type EventInput } from "@/lib/events";
+import { createEvent, deleteEvent, fetchEvent, updateEvent, type CalEvent, type EventInput } from "@/lib/events";
 import { isAdminRole, useMe } from "@/lib/session";
 
 const SCOPES = ["팀", "프로젝트", "개인"];
@@ -37,6 +37,7 @@ const toInput = (e: CalEvent): EventInput => ({
 export default function AdminEventEdit() {
   const { id } = useParams<{ id: string }>();
   const isNew = id === "new";
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const router = useRouter();
   const toast = useToast();
   const { me } = useMe();
@@ -127,6 +128,11 @@ export default function AdminEventEdit() {
       sub={original?.title}
       right={
         <div className="wd-row">
+          {!isNew && (
+            <button type="button" className="wd-btn ghost" style={{ color: "var(--t-red)" }} onClick={() => setDeleteOpen(true)} disabled={saving}>
+              삭제
+            </button>
+          )}
           {!isNew && (
             <button type="button" className="wd-btn ghost" onClick={() => router.push("/inhouse/admin/events/new")}>
               새 일정
@@ -234,6 +240,24 @@ export default function AdminEventEdit() {
           )}
         </aside>
       </div>
+      {deleteOpen && (
+        <Confirm
+          title="일정을 삭제할까요?"
+          message="알림 설정도 함께 지워지고 되돌릴 수 없어요."
+          confirmLabel="삭제"
+          danger
+          onClose={() => setDeleteOpen(false)}
+          onConfirm={async () => {
+            try {
+              await deleteEvent(id);
+              router.replace("/inhouse/my/calendar");
+            } catch (e) {
+              setDeleteOpen(false);
+              toast.show(e instanceof Error ? e.message : "삭제하지 못했어요.");
+            }
+          }}
+        />
+      )}
       {toast.node}
     </AdminShell>
   );

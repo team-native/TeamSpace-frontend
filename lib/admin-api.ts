@@ -165,6 +165,8 @@ export const createNotice = (input: NoticeInput) => api<{ id: string }>("/admin/
 export const updateNotice = (id: string, input: Partial<NoticeInput>) =>
   api<{ id: string }>(`/admin/notices/${encodeURIComponent(id)}`, { method: "PATCH", body: input });
 
+export const deleteNotice = (id: string) => api<{ id: string; deleted: boolean }>(`/admin/notices/${encodeURIComponent(id)}`, { method: "DELETE" });
+
 // ---- 재정 권한 (Admin만) ----
 
 export type FinanceMember = { id: string; name: string; email: string; roles: string[]; canView: boolean };

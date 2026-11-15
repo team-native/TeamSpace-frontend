@@ -1,18 +1,27 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import CommunityShell from "@/components/inhouse/CommunityShell";
 import { Eyebrow } from "@/components/inhouse/ui";
-import { PROPOSAL_DEPTS, createProposal } from "@/lib/proposals";
+import { PROPOSAL_DEPTS, createProposal, fetchProposal, updateProposal } from "@/lib/proposals";
 import { useMe } from "@/lib/session";
 
 const MAX_TITLE = 100;
 const MAX_BODY = 3000;
 
-// POST /proposals { title, body, category(담당 부서), anonymous }
 export default function ProposalWritePage() {
+  return (
+    <Suspense>
+      <ProposalForm />
+    </Suspense>
+  );
+}
+
+// POST /proposals { title, body, category(담당 부서), dept, anonymous } · ?edit=id 면 PATCH /proposals/{id} (접수 단계만)
+function ProposalForm() {
   const router = useRouter();
+  const editId = useSearchParams().get("edit");
   const { me } = useMe();
   const [dept, setDept] = useState<string>(PROPOSAL_DEPTS[0]);
   const [title, setTitle] = useState("");
@@ -20,6 +29,24 @@ export default function ProposalWritePage() {
   const [anonymous, setAnonymous] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(!!editId);
+
+  useEffect(() => {
+    if (!editId) return;
+    fetchProposal(editId)
+      .then((p) => {
+        if (!p.mine || p.status !== "접수") {
+          setError("접수 단계인 내 제안만 고칠 수 있어요.");
+          return;
+        }
+        setDept(p.dept);
+        setTitle(p.title);
+        setBody(p.body);
+        setAnonymous(p.anonymous);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "제안을 불러오지 못했어요."))
+      .finally(() => setLoading(false));
+  }, [editId]);
 
   return (
     <CommunityShell>
@@ -32,6 +59,11 @@ export default function ProposalWritePage() {
           setError("");
           setSending(true);
           try {
+            if (editId) {
+              await updateProposal(editId, { title: title.trim(), body: body.trim(), dept });
+              router.push(`/inhouse/community/proposals/${editId}`);
+              return;
+            }
             const { id } = await createProposal({ title: title.trim(), body: body.trim(), dept, anonymous });
             router.push(`/inhouse/community/proposals/${id}`);
           } catch (err) {
@@ -43,7 +75,7 @@ export default function ProposalWritePage() {
         <section className="wd-hero sm">
           <div>
             <Eyebrow>PROPOSAL</Eyebrow>
-            <h1>운영 제안하기</h1>
+            <h1>{editId ? "제안 고치기" : "운영 제안하기"}</h1>
             <p>담당 부서가 검토하고 진행 상태와 답변을 남겨요.</p>
           </div>
         </section>
@@ -51,7 +83,7 @@ export default function ProposalWritePage() {
           <div className="wd-field">
             <span>담당 부서</span>
             <div className="wd-seg" style={{ flexWrap: "wrap" }}>
-              {PROPOSAL_DEPTS.map((d) => (
+              {[...PROPOSAL_DEPTS, ...((PROPOSAL_DEPTS as readonly string[]).includes(dept) ? [] : [dept])].map((d) => (
                 <button type="button" key={d} className={dept === d ? "on" : ""} onClick={() => setDept(d)}>
                   {d}
                 </button>
@@ -81,10 +113,10 @@ export default function ProposalWritePage() {
           <div className="wd-field">
             <span>작성자 표시</span>
             <div className="wd-seg">
-              <button type="button" className={!anonymous ? "on" : ""} onClick={() => setAnonymous(false)}>
+              <button type="button" className={!anonymous ? "on" : ""} disabled={!!editId} onClick={() => setAnonymous(false)}>
                 실명 · {me?.name}
               </button>
-              <button type="button" className={anonymous ? "on" : ""} onClick={() => setAnonymous(true)}>
+              <button type="button" className={anonymous ? "on" : ""} disabled={!!editId} onClick={() => setAnonymous(true)}>
                 익명
               </button>
             </div>
@@ -103,8 +135,8 @@ export default function ProposalWritePage() {
             <button type="button" className="wd-btn ghost" onClick={() => router.back()}>
               취소
             </button>
-            <button type="submit" className="wd-btn" disabled={sending || !title.trim() || !body.trim()}>
-              {sending ? "보내는 중…" : "제안하기"}
+            <button type="submit" className="wd-btn" disabled={sending || loading || !title.trim() || !body.trim()}>
+              {sending ? "보내는 중…" : editId ? "저장" : "제안하기"}
             </button>
           </div>
         </div>

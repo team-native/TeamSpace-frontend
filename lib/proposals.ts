@@ -5,10 +5,15 @@ import { readAuthorProfile, type AuthorProfile } from "./shared";
 
 const nameOf = (a: unknown) => (typeof a === "string" ? a : a && typeof a === "object" && "name" in a ? String((a as { name: unknown }).name ?? "") : "");
 
-// 제안은 담당 부서로 보낸다 (서버에는 category 로 들어간다)
+// 제안은 담당 부서로 보낸다. category 에 담고, 서버 공식 부서 목록에 있는 곳이면 dept 에도 담아 그 부서가 처리할 수 있게 한다
 export const PROPOSAL_DEPTS = ["NativeOps", "FA", "PM / PO", "전공 리더", "NativeLab", "Design & Client"] as const;
 
 // 서버 상태 이름 그대로
+const OFFICIAL_DEPTS = ["NativeOps", "FA", "NativeLab", "IT", "iOS", "Android", "Flutter", "Frontend", "Backend", "DevOps", "Design & Client"];
+const deptKey = (d: string) => d.toLowerCase().replace(/[^a-z가-힣]/g, "");
+export const officialDept = (d: string) => OFFICIAL_DEPTS.find((x) => deptKey(x) === deptKey(d)) ?? null;
+export const sameDept = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && deptKey(a) === deptKey(b);
+
 export const PROPOSAL_STATUSES = ["접수", "검토 중", "협업 중", "답변 완료", "반려"] as const;
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number] | string;
 
@@ -63,7 +68,7 @@ export function toProposal(p: Raw): Proposal {
   const anonymous = !!p.anonymous;
   return {
     id: str(p.id),
-    dept: str(p.category),
+    dept: str(p.dept) || str(p.category),
     title: str(p.title),
     body: str(p.body ?? p.content),
     status: str(p.status) || "접수",
@@ -97,8 +102,19 @@ export const fetchProposal = async (id: string) => toProposal(await api<Raw>(`/p
 export const createProposal = (input: { title: string; body: string; dept: string; anonymous: boolean }) =>
   api<{ id: string | number; status?: string }>("/proposals", {
     method: "POST",
-    body: { title: input.title, body: input.body, category: input.dept, anonymous: input.anonymous },
+    body: { title: input.title, body: input.body, category: input.dept, dept: officialDept(input.dept), anonymous: input.anonymous },
   });
+
+// 작성자 본인이 접수 단계에서만 고칠 수 있다 (그 뒤엔 409)
+export const updateProposal = async (id: string, input: { title: string; body: string; dept: string }) =>
+  toProposal(
+    await api<Raw>(`/proposals/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: { title: input.title, body: input.body, category: input.dept, dept: officialDept(input.dept) },
+    }),
+  );
+
+export const deleteProposal = (id: string) => api<{ id: string; deleted: boolean }>(`/proposals/${encodeURIComponent(id)}`, { method: "DELETE" });
 
 export const recommendProposal = (id: string) =>
   api<{ recommended: boolean; recommendCount?: number; likes?: number }>(`/proposals/${encodeURIComponent(id)}/recommend`, { method: "POST" });
