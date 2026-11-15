@@ -130,7 +130,7 @@ export default function ProposalDetailPage() {
           </div>
           <h1 style={{ margin: "12px 0 10px", fontSize: 24, letterSpacing: "-.05em", fontWeight: 620 }}>{p.title}</h1>
           <div className="wd-row wd-t10 wd-faint" style={{ gap: 8, marginBottom: 24 }}>
-            <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} size={24} />
+            <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} mine={p.mine} size={24} />
             <b style={{ color: "var(--t-ink)" }}>{p.author}</b> · {p.when} · 조회 {p.views}
           </div>
           <div className="wd-doc" style={{ marginBottom: 24, whiteSpace: "pre-line" }}>
@@ -161,7 +161,7 @@ export default function ProposalDetailPage() {
           {p.comments.length === 0 && <p className="wd-t10 wd-faint" style={{ margin: "0 0 14px" }}>첫 의견을 남겨보세요.</p>}
           {p.comments.map((c) => (
             <div key={c.id} className="wd-row" style={{ gap: 10, alignItems: "flex-start", padding: "12px 0", borderTop: "1px solid var(--t-line)" }}>
-              <AuthorAvatar name={c.author} profile={c.profile} anonymous={c.anonymous || c.author === "글쓴이"} size={28} />
+              <AuthorAvatar name={c.author} profile={c.profile} anonymous={c.anonymous || c.author === "글쓴이"} mine={c.mine} size={28} />
               <div style={{ minWidth: 0 }}>
                 <b className="wd-t10">
                   {c.author}

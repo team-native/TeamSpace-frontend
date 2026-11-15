@@ -157,7 +157,7 @@ function Board() {
                     <p>{p.body.split("\n")[0]}</p>
                     <div className="wd-foot" style={{ alignItems: "center", flexWrap: "wrap" }}>
                       <span className="wd-row" style={{ gap: 6 }}>
-                        <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} size={20} />
+                        <AuthorAvatar name={p.author} profile={p.profile} anonymous={p.anonymous} mine={p.mine} size={20} />
                         {p.author}
                       </span>
                       <span className="wd-row" style={{ gap: 10 }}>
