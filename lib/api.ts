@@ -1,6 +1,13 @@
 // TeamSpace-backend 호출. 브라우저는 같은 출처 /api 로만 요청하고 next.config 의 rewrites 가 서버로 넘겨준다(CORS 회피).
 const BASE = "/api";
 
+// 서버 사진 주소(/people/member-01/photo?v=..)는 같은 출처 /api 를 거쳐 받는다. data:, blob:, http(s) 주소는 그대로
+export function photoUrl(src: string | null | undefined): string {
+  if (!src) return "";
+  if (src.startsWith("/") && !src.startsWith(`${BASE}/`)) return `${BASE}${src}`;
+  return src;
+}
+
 const ACCESS_KEY = "teamspace-access";
 const REFRESH_KEY = "teamspace-refresh";
 const USER_KEY = "teamspace-user";

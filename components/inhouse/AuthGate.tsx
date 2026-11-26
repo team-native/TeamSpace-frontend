@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { hasSession } from "@/lib/api";
 import { loadMe, useMe } from "@/lib/session";
+import Splash from "./Splash";
 
 // 로그인 없이 열리는 화면
 const PUBLIC = ["/inhouse/login", "/inhouse/reset-password"];
@@ -26,11 +27,22 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     setChecked(true);
   }, [isPublic, pathname, router, me, error]);
 
+  const waiting = !isPublic && (!checked || (!me && loading) || (!me && !error));
+  // 스플래시가 화면 상태와 상관없이 같은 자리에 남아 있어야 다시 뜨지 않는다
+  return (
+    <>
+      <Splash ready={!waiting} />
+      <Body isPublic={isPublic} waiting={waiting} failed={!me} error={error}>
+        {children}
+      </Body>
+    </>
+  );
+}
+
+function Body({ isPublic, waiting, failed, error, children }: { isPublic: boolean; waiting: boolean; failed: boolean; error: string | null | undefined; children: ReactNode }) {
   if (isPublic) return <>{children}</>;
-  if (!checked || (!me && loading) || (!me && !error)) {
-    return <div className="pf-gate" aria-busy="true" style={{ minHeight: "100vh" }} />;
-  }
-  if (!me) {
+  if (waiting) return <div className="pf-gate" aria-busy="true" style={{ minHeight: "100vh" }} />;
+  if (failed) {
     return (
       <main className="wd-scope" style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
         <div style={{ textAlign: "center", maxWidth: 360 }}>

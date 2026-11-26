@@ -3,10 +3,12 @@
 import Image from "next/image";
 import type { AuthorProfile } from "@/lib/shared";
 import { useMe } from "@/lib/session";
+import { photoUrl } from "@/lib/api";
 import { findPhoto, usePhotoBook } from "@/lib/avatars";
 
-// 사진이 없을 때의 기본 이미지 배경색. 서버 값은 GRAY·BLUE·YELLOW·GREEN·PINK
+// 사진이 없을 때의 기본 이미지 배경색. 서버 값은 WHITE·GRAY·BLUE·YELLOW·GREEN·PINK
 export const AVATAR_BACKGROUNDS: [string, string][] = [
+  ["WHITE", "흰색"],
   ["GRAY", "회색"],
   ["BLUE", "파랑"],
   ["YELLOW", "노랑"],
@@ -14,7 +16,8 @@ export const AVATAR_BACKGROUNDS: [string, string][] = [
   ["PINK", "분홍"],
 ];
 
-export default function ProfileAvatar({ src, bg, className = "", size, label }: { src: string; bg?: string; className?: string; size?: number; label?: string }) {
+export default function ProfileAvatar({ src: raw, bg, className = "", size, label }: { src: string; bg?: string; className?: string; size?: number; label?: string }) {
+  const src = photoUrl(raw);
   return (
     <span
       className={`pf-profile-avatar ${className} ${src ? "has-photo" : ""}`}

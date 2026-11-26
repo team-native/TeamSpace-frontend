@@ -183,6 +183,10 @@ export async function updatePost(id: string, input: Partial<PostInput>) {
 
 export const deletePost = (id: string) => api(`/posts/${encodeURIComponent(id)}`, { method: "DELETE" });
 
+// Admin만: 게시판 맨 위 고정 · 해제
+export const pinPost = (id: string, pinned: boolean) =>
+  api<{ id?: string; pinned?: boolean }>(`/admin/posts/${encodeURIComponent(id)}`, { method: "PATCH", body: { pinned } });
+
 export const likePost = (id: string) => api<{ liked: boolean; likes: number }>(`/posts/${encodeURIComponent(id)}/like`, { method: "POST" });
 
 export async function addComment(postId: string, body: { text: string; anonymous: boolean; replyTo?: string | null }) {
