@@ -839,3 +839,16 @@ html[data-theme] .t-rule-head[aria-expanded=true]{padding-bottom:12px}
 
 /* 빈 화면 아이콘이 SVG면 글자 보정(translateY) 없이 가운데 */
 .wd-empty-icon:has(>svg){display:grid;place-items:center;transform:none}
+
+/* 로고 스플래시 */
+.t-splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--t-bg,#fff);transition:opacity .32s ease,visibility .32s}
+.t-splash.out{opacity:0;visibility:hidden;pointer-events:none}
+.t-splash-mark{display:grid;justify-items:center;gap:14px;animation:t-splash-in .6s cubic-bezier(.2,.8,.2,1) both}
+.t-splash-mark img{display:block;width:84px;height:84px;border-radius:22px;box-shadow:0 10px 30px rgba(25,31,40,.08)}
+.t-splash-mark b{font-size:20px;font-weight:720;letter-spacing:-.04em;color:var(--t-ink,#191f28)}
+.t-splash-bar{position:relative;width:64px;height:3px;border-radius:3px;background:var(--t-line,#e5e8eb);overflow:hidden}
+.t-splash-bar i{position:absolute;inset:0 auto 0 0;width:40%;border-radius:3px;background:#ffc93c;animation:t-splash-bar 1s ease-in-out infinite}
+.t-splash.out .t-splash-mark{transform:scale(1.04);transition:transform .32s ease}
+@keyframes t-splash-in{from{opacity:0;transform:translateY(8px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes t-splash-bar{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){.t-splash-mark,.t-splash-bar i{animation:none}.t-splash,.t-splash.out .t-splash-mark{transition:none}}
