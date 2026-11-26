@@ -16,6 +16,7 @@ import {
   fetchPosts,
   likeComment,
   likePost,
+  pinPost,
   reportPost,
   type Comment,
   type Post,
@@ -255,6 +256,22 @@ export default function PostPage() {
                       toast.show("링크를 복사했어요");
                     }}
                   />
+                  {admin && (
+                    <MenuItem
+                      label={post.pinned ? "고정 해제" : "맨 위에 고정"}
+                      onClick={async () => {
+                        setMenuOpen(false);
+                        try {
+                          const r = await pinPost(post.id, !post.pinned);
+                          const pinned = r?.pinned ?? !post.pinned;
+                          setPost((p) => (p ? { ...p, pinned } : p));
+                          toast.show(pinned ? "게시판 맨 위에 고정했어요" : "고정을 풀었어요");
+                        } catch (e) {
+                          toast.show(errMsg(e, "고정하지 못했어요."));
+                        }
+                      }}
+                    />
+                  )}
                   {post.mine ? (
                     <>
                       <MenuItem label="수정" onClick={() => router.push(`/inhouse/community/write?edit=${post.id}`)} />
