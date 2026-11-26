@@ -9,6 +9,7 @@ import PhotoEditor from "@/components/inhouse/PhotoEditor";
 import { DEPARTMENTS } from "@/lib/shared";
 import { profileKey } from "@/lib/inhouse";
 import { updateProfile, type ProfileInput } from "@/lib/account";
+import { photoUrl } from "@/lib/api";
 import { loadMe, useMe, type Me } from "@/lib/session";
 import { refreshPhotoBook } from "@/lib/avatars";
 
@@ -172,7 +173,7 @@ export default function ProfilePage() {
                 </label>
                 {form.photo && (
                   <>
-                    <button type="button" className="wd-btn line sm" onClick={() => setEditing(source || form.photo)}>
+                    <button type="button" className="wd-btn line sm" onClick={() => setEditing(source || photoUrl(form.photo))}>
                       편집
                     </button>
                     <button
